@@ -1,42 +1,51 @@
 const nextConfig = {
-  experimental: {
-    appDir: true,
-    outputFileTracing: true,
-    optimizeCss: false, // evalúa si quieres dejarlo en false en prod
+  // Configuración básica y segura
+  reactStrictMode: true,
+  swcMinify: true,
+  poweredByHeader: false,
+  
+  // Headers básicos para cache
+  async headers() {
+    return [
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ];
   },
 
-  productionBrowserSourceMaps: true, // Esto genera source maps en prod, útil para debugging remoto pero aumenta tamaño
+  // Configuración de imágenes básica
+  images: {
+    formats: ['image/webp'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256],
+  },
 
-  webpack: (config, { isServer, dev }) => {
-    // Excluir algunas librerías en el servidor
+  // Configuración experimental mínima
+  experimental: {
+    optimizeCss: false, // Desactivar para evitar problemas
+  },
+
+  // Webpack básico sin optimizaciones complejas
+  webpack: (config, { dev, isServer }) => {
+    // Solo configuraciones básicas
     if (isServer) {
-      config.externals = [
-        ...(config.externals || []),
-        "chart.js",
-        "recharts",
-        "nodemailer",
-      ];
+      config.externals = [...(config.externals || [])];
     }
 
-    // Optimizar splitChunks para mejor cacheo
-    config.optimization = {
-      ...config.optimization,
-      splitChunks: {
-        chunks: "all",
-      },
-    };
-
-    // Opcional: controlar devtool según entorno para evitar eval-source-map en prod
-    if (!dev) {
-      config.devtool = false; // Desactiva devtool en producción para bundles limpios
-    }
+    // Resolver SVGs de manera simple
+    config.module.rules.push({
+      test: /\.svg$/,
+      use: ['@svgr/webpack'],
+    });
 
     return config;
   },
-
-  poweredByHeader: false,
-  reactStrictMode: true,
-  swcMinify: true,
 };
 
 export default nextConfig;

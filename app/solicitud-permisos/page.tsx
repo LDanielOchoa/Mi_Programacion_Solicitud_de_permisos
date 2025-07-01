@@ -15,6 +15,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import BottomNavigation from "../../components/bottom-navigation"
 import UserInfoCard from "@/components/user-info-card"
 import { toast } from "@/components/ui/use-toast"
+import useConnectionAwareSubmit from "@/hooks/useConnectionAwareSubmit"
+import ConnectionStatus from "@/components/ConnectionStatus"
 
 interface DateInfo {
   date: Date;
@@ -319,14 +321,139 @@ export default function PermitRequestForm() {
     })
   }
 
+  // Estados para conexión y envío
+  const [connectionStatus, setConnectionStatus] = useState<string>('')
+  const [progressMessage, setProgressMessage] = useState<string>('')
+
+  // Hook para envío inteligente con protección contra duplicados
+  const connectionAwareSubmit = useConnectionAwareSubmit(
+    async (data: any, signal: AbortSignal) => {
+      const response = await fetch("https://solicitud-permisos.sao6.com.co/api/permit-request", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${data.token}`,
+        },
+        body: data.formData,
+        signal
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Error al enviar la solicitud: ${errorData.detail || response.statusText}`);
+      }
+
+      return response.json();
+    },
+    {
+      timeout: 45000, // 45 segundos para solicitudes de permisos
+      maxRetries: 3,
+      retryDelay: 3000,
+      deduplicationWindow: 8000, // 8 segundos para deduplicación
+      onProgress: (stage) => {
+        setProgressMessage(stage);
+        console.log('📊 Progreso del envío:', stage);
+      },
+      onConnectionIssue: (issue) => {
+        setConnectionStatus(issue);
+        toast({
+          title: "Problema de conexión",
+          description: issue,
+          variant: "destructive",
+        });
+      }
+    }
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    e.stopPropagation()
 
-    if ((selectedDates.length === 0 && noveltyType !== "semanaAM" && noveltyType !== "semanaPM") || !noveltyType) {
+    // VALIDACIÓN CRÍTICA - Prevenir envíos vacíos
+    console.log("🔍 Validando datos antes del envío...")
+    console.log("📊 Estado actual:", { 
+      noveltyType, 
+      selectedDatesLength: selectedDates.length,
+      userDataCode: userData.code,
+      userDataName: userData.name 
+    })
+
+    // 1. Validar que el usuario esté identificado
+    if (!userData.code || !userData.name || userData.code.trim() === '' || userData.name.trim() === '') {
+      toast({
+        title: "Error crítico",
+        description: "Datos de usuario no válidos. Por favor, vuelve a iniciar sesión.",
+        variant: "destructive",
+      })
+      console.error("❌ Datos de usuario vacíos o inválidos")
+      return
+    }
+
+    // 2. Validar que se haya seleccionado un tipo de solicitud
+    if (!noveltyType || noveltyType.trim() === '') {
+      toast({
+        title: "Campo requerido",
+        description: "Debe seleccionar el tipo de solicitud.",
+        variant: "destructive",
+      })
+      console.error("❌ Tipo de solicitud no seleccionado")
       setShowValidationDialog(true)
       return
     }
 
+    // 3. Validar fechas según el tipo de solicitud
+    const requiresDates = !["semanaAM", "semanaPM"].includes(noveltyType)
+    if (requiresDates && selectedDates.length === 0) {
+      toast({
+        title: "Campo requerido",
+        description: "Debe seleccionar al menos una fecha para este tipo de solicitud.",
+        variant: "destructive",
+      })
+      console.error("❌ No se seleccionaron fechas para tipo que las requiere:", noveltyType)
+      setShowValidationDialog(true)
+      return
+    }
+
+    // 4. Validar campos específicos según el tipo
+    const formElement = e.target as HTMLFormElement
+    const timeValue = formElement.time?.value?.trim() || ""
+    const descriptionValue = formElement.description?.value?.trim() || ""
+
+    // Tipos que requieren hora específica
+    if (["cita", "audiencia"].includes(noveltyType) && !timeValue) {
+      toast({
+        title: "Campo requerido",
+        description: "La hora es requerida para este tipo de solicitud.",
+        variant: "destructive",
+      })
+      console.error("❌ Hora requerida no proporcionada para:", noveltyType)
+      return
+    }
+
+    // Validar descripción para ciertos tipos
+    if (["licencia", "cita", "audiencia"].includes(noveltyType) && !descriptionValue) {
+      toast({
+        title: "Campo requerido",
+        description: "La descripción es requerida para este tipo de solicitud.",
+        variant: "destructive",
+      })
+      console.error("❌ Descripción requerida no proporcionada para:", noveltyType)
+      return
+    }
+
+    // 5. Validar teléfono
+    if (!userData.phone || userData.phone.trim() === '') {
+      toast({
+        title: "Campo requerido",
+        description: "El número de teléfono es requerido.",
+        variant: "destructive",
+      })
+      console.error("❌ Teléfono no válido")
+      return
+    }
+
+    console.log("✅ Todas las validaciones pasaron correctamente")
+
+    try {
     // Check for existing permits
     const formattedDates = selectedDates.map((date) => format(date, "yyyy-MM-dd"))
     const hasExistingPermit = await checkExistingPermits(formattedDates)
@@ -341,55 +468,88 @@ export default function PermitRequestForm() {
     }
 
     setIsLoading(true)
-    const formData = new FormData()
-    formData.append("code", userData.code)
-    formData.append("name", userData.name)
-    formData.append("phone", userData.phone)
-    formData.append("dates", JSON.stringify(selectedDates.map((date) => format(date, "yyyy-MM-dd"))))
-    formData.append("noveltyType", noveltyType)
-    formData.append("time", (e.target as HTMLFormElement).time?.value || "")
-    formData.append("description", (e.target as HTMLFormElement).description?.value || "")
+      
+      // Crear FormData con validación FINAL
+      const dataToSend = {
+        code: userData.code,
+        name: userData.name,
+        phone: userData.phone,
+        dates: formattedDates,
+        noveltyType: noveltyType,
+        time: timeValue,
+        description: descriptionValue
+      }
 
-    try {
+      console.log("📦 Datos finales a enviar:", dataToSend)
+
+      // Verificar que no haya campos críticos vacíos
+      if (!dataToSend.code || !dataToSend.name || !dataToSend.noveltyType) {
+        console.error("❌ DATOS CRÍTICOS VACÍOS DETECTADOS")
+        toast({
+          title: "Error crítico",
+          description: "Datos críticos faltantes. No se puede enviar la solicitud.",
+          variant: "destructive",
+        })
+        setIsLoading(false)
+        return
+      }
+
+      const formData = new FormData()
+      formData.append("code", dataToSend.code)
+      formData.append("name", dataToSend.name)
+      formData.append("phone", dataToSend.phone)
+      formData.append("dates", JSON.stringify(dataToSend.dates))
+      formData.append("noveltyType", dataToSend.noveltyType)
+      formData.append("time", dataToSend.time)
+      formData.append("description", dataToSend.description)
+
       const token = localStorage.getItem("accessToken")
       if (!token) {
         throw new Error("No se encontró el token de acceso")
       }
 
-      console.log("Sending request to server...")
-      const response = await fetch("https://solicitud-permisos.sao6.com.co/api/permit-request", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      })
+      // USAR EL HOOK DE CONEXIÓN INTELIGENTE
+      console.log("📤 Enviando con protección contra duplicados...")
+      const result = await connectionAwareSubmit.submit({ formData, token })
 
-      console.log("Response status:", response.status)
-      const responseData = await response.json()
-      console.log("Response data:", responseData)
-
-      if (!response.ok) {
-        throw new Error("Error al enviar la solicitud")
-      }
-
+      console.log("✅ Solicitud enviada exitosamente:", result)
       setIsSuccess(true)
-      // Resetear el formulario
+      
+      // Resetear el formulario de manera segura
+      try {
       const form = e.target as HTMLFormElement
       form.reset()
+      } catch (resetError) {
+        console.warn("Advertencia al resetear formulario:", resetError)
+      }
 
       setSelectedDates([])
       setNoveltyType("")
       setHasShownLicenseNotification(false)
+
+      // Auto-ocultar mensaje de éxito
+      setTimeout(() => {
+        setIsSuccess(false)
+      }, 5000)
+
     } catch (error) {
-      console.error("Error:", error)
+      console.error("❌ Error enviando solicitud:", error)
+      const errorMessage = error instanceof Error ? error.message : "Error desconocido"
+      
+      if (!errorMessage.includes('duplicado') && !errorMessage.includes('esperar')) {
+        toast({
+          title: "Error al enviar",
+          description: errorMessage,
+          variant: "destructive",
+        })
       setError("Ocurrió un error al enviar la solicitud. Por favor, inténtelo de nuevo.")
+      }
     } finally {
       setIsLoading(false)
-      // Resetear el éxito después de 5 segundos
-      setTimeout(() => setIsSuccess(false), 5000)
     }
   }
+
+
 
   const handleConfirmation = (confirmed: boolean) => {
     if (confirmed) {
@@ -1151,6 +1311,19 @@ export default function PermitRequestForm() {
 
       {/* Bottom Navigation */}
       <BottomNavigation hasNewNotification={hasNewNotification} />
+
+      {/* Componente de estado de conexión */}
+      <ConnectionStatus
+        connectionQuality={connectionAwareSubmit.state.connectionQuality}
+        isSubmitting={connectionAwareSubmit.state.isSubmitting}
+        isRetrying={connectionAwareSubmit.state.isRetrying}
+        retryCount={connectionAwareSubmit.state.retryCount}
+        stage={connectionAwareSubmit.state.stage}
+        progressMessage={progressMessage}
+        connectionStatus={connectionStatus}
+        pendingRequestsCount={connectionAwareSubmit.pendingRequestsCount}
+        onCancel={connectionAwareSubmit.cancelAllRequests}
+      />
     </div>
   )
 }
