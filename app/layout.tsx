@@ -1,11 +1,15 @@
 
 import './globals.css'
+import type React from "react"
+import type { Metadata } from "next"
 import { Inter } from 'next/font/google'
+import { Toaster } from "@/components/ui/toaster"
+import PageTransition from "@/components/page-transition"
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata = {
-  title: 'Link de permisos operacionales',
+  title: 'SAO6 - Link de permisos operacionales',
   description: 'Control de permisos operacionales sao6', 
   icons: {
     icon: '/sao6.png', 
@@ -19,10 +23,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body className={`${inter.className} min-h-screen bg-gradient-to-br from-green-100 via-white to-green-200`}>
-        <main className="container mx-auto px-4 py-8">
-          {children}
-        </main>
+      <body className={inter.className}>
+        <PageTransition>{children}</PageTransition>
+        <Toaster />
       </body>
     </html>
   )

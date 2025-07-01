@@ -1,10 +1,18 @@
-'use client'
+"use client"
 
-import { useState, useEffect } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useState, useEffect } from "react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Search } from 'lucide-react'
+import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Search } from "lucide-react"
 
 interface User {
   code: string
@@ -20,76 +28,79 @@ interface UserSelectDialogProps {
   title: string
 }
 
-export function UserSelectDialog({
-  open,
-  onOpenChange,
-  onSelect,
-  users,
-  currentUser,
-  title
-}: UserSelectDialogProps) {
-  const [search, setSearch] = useState('')
+export function UserSelectDialog({ open, onOpenChange, onSelect, users, currentUser, title }: UserSelectDialogProps) {
+  const [searchTerm, setSearchTerm] = useState("")
   const [filteredUsers, setFilteredUsers] = useState<User[]>([])
 
   useEffect(() => {
-    // Filter and sort users
-    const filtered = users
-      .filter(user => 
-        user.code.toLowerCase().includes(search.toLowerCase()) ||
-        user.name.toLowerCase().includes(search.toLowerCase())
-      )
-      .sort((a, b) => {
-        // Put current user first
-        if (a.code === currentUser.code) return -1
-        if (b.code === currentUser.code) return 1
-        // Sort others by code in descending order
-        return b.code.localeCompare(a.code)
-      })
-
+    const filtered = users.filter(
+      (user) =>
+        user.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.name.toLowerCase().includes(searchTerm.toLowerCase()),
+    )
     setFilteredUsers(filtered)
-  }, [search, users, currentUser])
+  }, [searchTerm, users])
+
+  const handleSelect = (user: User) => {
+    onSelect(user)
+    onOpenChange(false)
+  }
+
+  const getUserInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2)
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>Seleccione un usuario de la lista.</DialogDescription>
         </DialogHeader>
-        <div className="relative">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
-            placeholder="Buscar por código o nombre..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-8"
+            placeholder="Buscar usuario..."
+            className="pl-10 bg-white border-gray-200 focus:border-green-500 rounded-lg"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <ScrollArea className="h-[300px] pr-4">
-          <div className="space-y-2">
-            {filteredUsers.map((user) => (
-              <button
-                key={user.code}
-                onClick={() => {
-                  onSelect(user)
-                  onOpenChange(false)
-                }}
-                className="w-full p-2 text-left hover:bg-accent rounded-md transition-colors flex items-center space-x-2"
-              >
+
+        <div className="max-h-[300px] overflow-y-auto">
+          {filteredUsers.map((user) => (
+            <Button
+              key={user.code}
+              variant="ghost"
+              className="w-full justify-start py-2 px-3 rounded-md hover:bg-gray-100"
+              onClick={() => handleSelect(user)}
+              disabled={user.code === currentUser.code}
+            >
+              <div className="flex items-center space-x-2">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback>{getUserInitials(user.name)}</AvatarFallback>
+                </Avatar>
                 <div>
-                  <div className="font-medium">{user.code}</div>
-                  <div className="text-sm text-muted-foreground">{user.name}</div>
+                  <p className="text-sm font-medium">{user.name}</p>
+                  <p className="text-xs text-gray-500">{user.code}</p>
                 </div>
-                {user.code === currentUser.code && (
-                  <span className="ml-auto text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                    Actual
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        </ScrollArea>
+              </div>
+            </Button>
+          ))}
+        </div>
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )
 }
-

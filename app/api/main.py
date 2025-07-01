@@ -1,5 +1,6 @@
 from schemas import LoginRequest, LoginResponse, UserResponse, PermitRequest, EquipmentRequest, NotificationStatusUpdate, SolicitudResponse, UpdatePhoneRequest, ApprovalUpdate, PermitRequest2, UserResponse, UserResponse
-from fastapi import FastAPI, HTTPException, Depends, File, UploadFile, Form, Query
+from fastapi import FastAPI, HTTPException, Depends, File, UploadFile, Form, Query, status
+from fastapi.middleware.cors import CORSMiddleware
 from auth import create_access_token, verify_password, get_current_user
 from fastapi.responses import JSONResponse, FileResponse
 from database import create_connection, close_connection
@@ -12,8 +13,18 @@ import mimetypes
 import aiofiles
 import json
 import os
+from collections import defaultdict
 
 app = FastAPI()
+
+# Configuración CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # En producción, reemplaza "*" con los dominios permitidos
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -642,7 +653,6 @@ def update_request(
     
     cursor = connection.cursor()
     try:
-        # Try updating permit_perms first
         cursor.execute("""
             UPDATE permit_perms
             SET solicitud = %s, respuesta = %s
@@ -650,7 +660,6 @@ def update_request(
         """, (request['status'], request.get('respuesta', ''), request_id))
         
         if cursor.rowcount == 0:
-            # If no rows were affected, try permit_post
             cursor.execute("""
                 UPDATE permit_post
                 SET solicitud = %s, respuesta = %s
@@ -741,7 +750,7 @@ def get_solicitudes(current_user: dict = Depends(get_current_user)):
                 '' as turno,
                 'permiso' as request_type
             FROM permit_perms
-            WHERE code = %s AND solicitud IN ('approved', 'rejected')
+            WHERE code = %s AND solicitud IN ('approved', 'rejected', 'pending')
         """, (current_user['code'],))
         permit_requests = cursor.fetchall()
 
@@ -939,52 +948,81 @@ async def update_user(code: str, user: UserResponse):
     finally:
 
         close_connection(connection)
-
-
+        
 @app.get("/excel")
 async def get_excel():
     connection = create_connection()
     if connection is None:
+        logger.error("Error de conexión a la base de datos en /excel")
         raise HTTPException(status_code=500, detail="Error de conexión a la base de datos")
-    
     cursor = connection.cursor(dictionary=True)
     try:
-        # Fetch only approved Descanso or Licencia no remunerada records
         cursor.execute("""
             SELECT 
                 code,
                 name,
                 telefono,
-                MIN(fecha) as fecha_inicio,
-                MAX(fecha) as fecha_fin,
-                tipo_novedad as novedad,
+                fecha,
+                tipo_novedad AS novedad,
                 description,
-                respuesta
+                respuesta,
+                solicitud
             FROM permit_perms
-            WHERE solicitud = 'approved'
-            GROUP BY code, name, telefono, tipo_novedad, description, respuesta
-            ORDER BY MIN(fecha);
-
         """)
         records = cursor.fetchall()
-        
-        # Process records
-        for record in records:
-            if isinstance(record['fecha_inicio'], datetime):
-                record['fecha_inicio'] = record['fecha_inicio'].strftime('%Y-%m-%d')
-            if isinstance(record['fecha_fin'], datetime):
-                record['fecha_fin'] = record['fecha_fin'].strftime('%Y-%m-%d')
-
-        return records
-        
+        logger.info(f"/excel: Registros obtenidos de la base de datos: {len(records)}")
+        # Agrupamos por claves compuestas
+        grouped = defaultdict(list)
+        for r in records:
+            key = (r['code'], r['name'], r['telefono'], r['novedad'], r['description'], r['respuesta'])
+            # separa fechas por coma y limpia espacios
+            try:
+                fechas = [f.strip() for f in (r['fecha'] or '').split(',') if f.strip()]
+            except Exception as e:
+                logger.error(f"Error al procesar fechas para el registro {r}: {e}")
+                fechas = []
+            grouped[key].extend(fechas)
+        # Construimos el resultado final
+        result = []
+        for key, fechas in grouped.items():
+            try:
+                fechas_dt = []
+                for f in fechas:
+                    try:
+                        fechas_dt.append(datetime.strptime(f, '%Y-%m-%d'))
+                    except Exception as ve:
+                        logger.warning(f"Fecha mal formateada ignorada: '{f}' para key {key}: {ve}")
+                if fechas_dt:
+                    fecha_inicio = min(fechas_dt).strftime('%Y-%m-%d')
+                    fecha_fin = max(fechas_dt).strftime('%Y-%m-%d')
+                else:
+                    fecha_inicio = ''
+                    fecha_fin = ''
+            except Exception as e:
+                logger.error(f"Error al convertir fechas para key {key}: {e}")
+                fecha_inicio = ''
+                fecha_fin = ''
+            result.append({
+                'code': key[0],
+                'name': key[1],
+                'telefono': key[2],
+                'fecha_inicio': fecha_inicio,
+                'fecha_fin': fecha_fin,
+                'novedad': key[3],
+                'description': key[4],
+                'respuesta': key[5],
+            })
+        logger.info(f"/excel: Registros procesados para respuesta: {len(result)}")
+        return result
     except Exception as e:
-        print("Database error:", str(e))
+        logger.error(f"Database error en /excel: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Error al obtener los registros de permisos: {str(e)}"
         )
     finally:
         close_connection(connection)
+
 
 
 @app.get("/excel-novedades")
@@ -1007,7 +1045,6 @@ async def get_excel():
                 description,
                 respuesta
             FROM permit_perms
-            WHERE solicitud = 'approved'
             GROUP BY code, name, telefono, tipo_novedad, description, respuesta
             ORDER BY MIN(fecha);
 
@@ -1073,41 +1110,110 @@ async def add_user(user: UserResponse):
 
 from datetime import datetime
 from fastapi import HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
-@app.get("/api/history/{code}")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.get("/history/{code}", response_model=List[dict])
 async def get_user_history(code: str):
-    connection = create_connection()
-    if connection is None:
-        raise HTTPException(status_code=500, detail="Error de conexión a la base de datos")
-    
-    cursor = connection.cursor(dictionary=True)
+    """Obtiene el historial de solicitudes de un usuario por su código."""
+    logger.info(f"Iniciando solicitud de historial para el código: {code}")
+    connection = None
+    cursor = None
     try:
-        # Ajuste de columnas para reflejar la estructura real de la tabla permit_perms
-        cursor.execute("""
+        logger.debug("Estableciendo conexión a la base de datos...")
+        connection = create_connection()
+        if connection is None:
+            error_msg = "Error: No se pudo establecer conexión con la base de datos"
+            logger.error(error_msg)
+            raise HTTPException(
+                status_code=500,
+                detail=error_msg
+            )
+        
+        cursor = connection.cursor(dictionary=True)
+        
+        # Verificar primero si el código existe
+        logger.debug(f"Buscando registros para el código: {code}")
+        
+        # Primero verificar si el usuario existe en la tabla de usuarios
+        cursor.execute("SELECT COUNT(*) as count FROM users WHERE code = %s", (code,))
+        user_exists = cursor.fetchone()['count'] > 0
+        
+        if not user_exists:
+            logger.info(f"El código de usuario no existe: {code}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"No se encontró un usuario con el código {code}"
+            )
+            
+        # Luego verificar si tiene historial
+        cursor.execute("SELECT COUNT(*) as count FROM permit_perms WHERE code = %s", (code,))
+        count_result = cursor.fetchone()
+        
+        if not count_result or count_result['count'] == 0:
+            logger.info(f"No se encontraron registros para el código: {code}")
+            return []  # Retornar lista vacía si no hay registros
+        
+        logger.debug(f"Se encontraron {count_result['count']} registros para el código: {code}")
+            
+        # Obtener el historial
+        query = """
             SELECT 
                 id, 
-                tipo_novedad AS type, 
-                CONCAT(fecha, ' ', hora) AS createdAt, 
-                solicitud AS status
+                COALESCE(tipo_novedad, 'Sin tipo') AS type, 
+                COALESCE(time_created, NOW()) AS createdAt, 
+                COALESCE(fecha, '') AS requestedDates, 
+                COALESCE(solicitud, 'Pendiente') AS status
             FROM permit_perms
             WHERE code = %s
             ORDER BY time_created DESC
-        """, (code,))
+            LIMIT 50
+        """
+        logger.debug(f"Ejecutando consulta: {query} con código: {code}")
+        cursor.execute(query, (code,))
+        
         history = cursor.fetchall()
+        logger.debug(f"Se obtuvieron {len(history)} registros de historial")
         
         # Procesar las fechas para que sean serializables
         for item in history:
-            try:
-                item['createdAt'] = datetime.strptime(item['createdAt'], "%Y-%m-%d %H:%M:%S").isoformat()
-            except ValueError:
-                pass  # Manejo de valores de fecha incorrectos
+            if 'createdAt' in item and item['createdAt']:
+                try:
+                    if isinstance(item['createdAt'], str):
+                        item['createdAt'] = datetime.strptime(item['createdAt'], "%Y-%m-%d %H:%M:%S").isoformat()
+                    elif hasattr(item['createdAt'], 'isoformat'):
+                        item['createdAt'] = item['createdAt'].isoformat()
+                except (ValueError, AttributeError) as e:
+                    logger.warning(f"Error al formatear fecha: {str(e)}")
+                    item['createdAt'] = datetime.now().isoformat()
         
+        logger.info(f"Historial obtenido exitosamente para el código: {code}")
         return history
+        
     except Exception as e:
-        print("Database error:", str(e))
-        raise HTTPException(status_code=500, detail=f"Error al obtener el historial: {str(e)}")
+        error_msg = f"Error en get_user_history para código {code}: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=error_msg
+        )
     finally:
-        close_connection(connection)
+        try:
+            if cursor:
+                cursor.close()
+                logger.debug("Cursor cerrado")
+            if connection:
+                close_connection(connection)
+                logger.debug("Conexión cerrada")
+        except Exception as e:
+            logger.error(f"Error al cerrar recursos: {str(e)}", exc_info=True)
 
 from pydantic import BaseModel
 class DateCheck(BaseModel):
@@ -1159,7 +1265,14 @@ async def check_existing_requests(date_check: DateCheck, current_user: dict = De
     finally:
         close_connection(connection)
         
+@app.get("/graphql")
+async def graphql_get():
+    return {"message": "GraphQL endpoint not implemented. Use REST API endpoints instead."}
+
+@app.post("/graphql")
+async def graphql_post():
+    return {"message": "GraphQL endpoint not implemented. Use REST API endpoints instead."}
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
-
+    uvicorn.run(app, host="0.0.0.0", port=8001)

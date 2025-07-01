@@ -1,29 +1,35 @@
-// next.config.mjs
 const nextConfig = {
   experimental: {
-    appDir: true, // Activa la nueva estructura de aplicaciones
-    outputFileTracing: true, // Optimiza la inclusión de dependencias necesarias
-    optimizeCss: false, // Desactiva la optimización de CSS si es necesario
+    appDir: true,
+    outputFileTracing: true,
+    optimizeCss: false, // evalúa si quieres dejarlo en false en prod
   },
 
-  productionBrowserSourceMaps: true,
+  productionBrowserSourceMaps: true, // Esto genera source maps en prod, útil para debugging remoto pero aumenta tamaño
 
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, dev }) => {
+    // Excluir algunas librerías en el servidor
     if (isServer) {
       config.externals = [
-        ...config.externals || [],
-        "chart.js", 
-        "recharts", 
-        "nodemailer", 
+        ...(config.externals || []),
+        "chart.js",
+        "recharts",
+        "nodemailer",
       ];
     }
 
+    // Optimizar splitChunks para mejor cacheo
     config.optimization = {
       ...config.optimization,
       splitChunks: {
         chunks: "all",
       },
     };
+
+    // Opcional: controlar devtool según entorno para evitar eval-source-map en prod
+    if (!dev) {
+      config.devtool = false; // Desactiva devtool en producción para bundles limpios
+    }
 
     return config;
   },

@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect, useCallback } from "react"
-import { FileText, Laptop, Filter, ChevronLeft, ChevronRight, Clock, Trash2 } from "lucide-react"
+import { FileText, Laptop, Filter, ChevronLeft, ChevronRight, Clock, Trash2, Calendar } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
@@ -45,7 +45,8 @@ type Request = {
   shift?: string
   noveltyType?: string
   reason?: string
-  [key: string]: string | undefined
+  dates?: string | string[]
+  [key: string]: string | string[] | undefined
 }
 
 type GroupedRequests = {
@@ -106,6 +107,339 @@ const DetailedStatCard = ({
     ))}
   </div>
 )
+
+// Define the WeeklyStatsDisplayProps type
+type WeeklyStatsDisplayProps = {
+  requests: Request[]
+}
+
+// Modificar el componente WeeklyStatsDisplay para mostrar detalles de las solicitudes por día
+const WeeklyStatsDisplay = ({ requests }: WeeklyStatsDisplayProps) => {
+  const [weekOffset, setWeekOffset] = useState(0)
+  const [expandedDay, setExpandedDay] = useState<string | null>(null)
+
+  // Función para obtener el primer día de la semana (lunes)
+  const getFirstDayOfWeek = (offset = 0) => {
+    const today = new Date()
+    const dayOfWeek = today.getDay() || 7 // Convertir domingo (0) a 7
+    const diff = today.getDate() - dayOfWeek + 1 // Ajustar al lunes
+
+    const firstDay = new Date(today)
+    firstDay.setDate(diff + offset * 7)
+    return firstDay
+  }
+
+  // Generar datos de la semana
+  const generateWeekData = () => {
+    const firstDay = getFirstDayOfWeek(weekOffset)
+    const days = []
+    const dayNames = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+
+    // Crear un mapa para agrupar solicitudes por fecha
+    const requestsByDate: Record<string, Request[]> = {}
+
+    // Procesar cada solicitud para agrupar por fecha
+    requests.forEach((request) => {
+      // Comprobar si hay fechas en el request
+      if (request.dates) {
+        // Convertir fechas de string a array si es necesario
+        const datesArray = typeof request.dates === "string" ? request.dates.split(",") : request.dates
+
+        // Normalizar y agrupar cada fecha
+        datesArray.forEach((dateStr: string) => {
+          const dateKey = dateStr.trim()
+          if (dateKey) {
+            if (!requestsByDate[dateKey]) {
+              requestsByDate[dateKey] = []
+            }
+            requestsByDate[dateKey].push(request)
+          }
+        })
+      }
+    })
+
+    // Generar datos para cada día de la semana
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(firstDay)
+      date.setDate(firstDay.getDate() + i)
+
+      // Formatear fecha como YYYY-MM-DD para comparar con los datos
+      const dateKey = date.toISOString().split("T")[0]
+      const dayRequests = requestsByDate[dateKey] || []
+
+      days.push({
+        day: String(date.getDate()).padStart(2, "0"),
+        date: date,
+        dayName: dayNames[i],
+        count: dayRequests.length,
+        requests: dayRequests,
+        dateKey: dateKey,
+      })
+    }
+
+    return days
+  }
+
+  const weekData = generateWeekData()
+
+  // Obtener el rango de fechas para el título
+  const getDateRangeText = () => {
+    if (weekData.length === 0) return ""
+
+    const firstDate = weekData[0].date
+    const lastDate = weekData[6].date
+
+    const formatDate = (date: Date) => {
+      return `${date.getDate()} ${date.toLocaleString("es", { month: "short" })}`
+    }
+
+    return `${formatDate(firstDate)} - ${formatDate(lastDate)}`
+  }
+
+  // Obtener color de fondo según el conteo
+  const getColorClass = (count: number) => {
+    if (count === 0) return "bg-gray-50 text-gray-500"
+    if (count < 3) return "bg-blue-50 text-blue-700"
+    if (count < 5) return "bg-amber-50 text-amber-700"
+    return "bg-rose-50 text-rose-700"
+  }
+
+  // Manejar clic en un día para expandir/contraer detalles
+  const handleDayClick = (dateKey: string) => {
+    if (expandedDay === dateKey) {
+      setExpandedDay(null)
+    } else {
+      setExpandedDay(dateKey)
+    }
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center text-sm font-medium">
+          <Calendar className="h-4 w-4 mr-1 text-gray-500" />
+          {getDateRangeText()}
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button variant="outline" size="sm" onClick={() => setWeekOffset((prev) => prev - 1)} className="h-8 px-2">
+            <ChevronLeft className="h-4 w-4" />
+            Anterior
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setWeekOffset((prev) => prev + 1)} className="h-8 px-2">
+            Siguiente
+            <ChevronRight className="h-4 w-4 ml-1" />
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-7 gap-2">
+        <AnimatePresence mode="wait">
+          {weekData.map((dayData, index) => (
+            <motion.div
+              key={dayData.dayName}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2, delay: index * 0.05 }}
+              className="flex flex-col items-center"
+            >
+              <p className="text-xs font-medium text-gray-500 mb-1">{dayData.dayName}</p>
+              <div
+                className={`w-full rounded-lg p-3 flex flex-col items-center shadow-sm ${getColorClass(dayData.count)} ${
+                  dayData.count > 0 ? "cursor-pointer hover:shadow-md transition-shadow" : ""
+                }`}
+                onClick={() => dayData.count > 0 && handleDayClick(dayData.dateKey)}
+              >
+                <p className="text-sm font-bold">{dayData.day}</p>
+                <motion.div
+                  className="mt-2 text-center"
+                  initial={{ scale: 0.8 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                >
+                  <p className="text-2xl font-bold">{dayData.count}</p>
+                  <p className="text-xs">solicitudes</p>
+                </motion.div>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {/* Detalles de solicitudes para el día seleccionado */}
+      <AnimatePresence>
+        {expandedDay && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mt-4 bg-white rounded-lg shadow-sm p-4 overflow-hidden"
+          >
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-medium text-gray-900">
+                Solicitudes para el {format(new Date(expandedDay), "d 'de' MMMM, yyyy", { locale: es })}
+              </h3>
+              <Button variant="ghost" size="sm" onClick={() => setExpandedDay(null)}>
+                Cerrar
+              </Button>
+            </div>
+
+            {/* Resumen de tipos de solicitudes */}
+            {(() => {
+              const dayRequests = weekData.find((day) => day.dateKey === expandedDay)?.requests || []
+
+              // Conteo por tipo de solicitud
+              const typeCounts: Record<string, number> = {}
+              dayRequests.forEach((req) => {
+                typeCounts[req.type] = (typeCounts[req.type] || 0) + 1
+              })
+
+              // Separar en categorías
+              const permitTypes = ["descanso", "cita", "audiencia", "licencia", "diaAM", "diaPM"]
+              const postulationTypes = ["Turno pareja", "Tabla partida", "Disponible fijo"]
+
+              const permitCounts = Object.entries(typeCounts)
+                .filter(([type]) => permitTypes.includes(type))
+                .sort((a, b) => b[1] - a[1])
+
+              const postulationCounts = Object.entries(typeCounts)
+                .filter(([type]) => postulationTypes.includes(type))
+                .sort((a, b) => b[1] - a[1])
+
+              const otherCounts = Object.entries(typeCounts)
+                .filter(([type]) => !permitTypes.includes(type) && !postulationTypes.includes(type))
+                .sort((a, b) => b[1] - a[1])
+
+              // Función para mostrar el nombre amigable del tipo
+              const getTypeName = (type: string) => {
+                const typeNames: Record<string, string> = {
+                  descanso: "Descansos",
+                  cita: "Citas médicas",
+                  audiencia: "Audiencias",
+                  licencia: "Licencias no remuneradas",
+                  diaAM: "Día AM",
+                  diaPM: "Día PM",
+                  "Turno pareja": "Turnos pareja",
+                  "Tabla partida": "Tablas partidas",
+                  "Disponible fijo": "Disponibles fijos",
+                }
+                return typeNames[type] || type
+              }
+
+              return (
+                <div className="mb-4">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Resumen de solicitudes</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Permisos */}
+                    {permitCounts.length > 0 && (
+                      <div className="bg-green-50 rounded-lg p-3">
+                        <h5 className="text-sm font-medium text-green-800 mb-2">Permisos</h5>
+                        <div className="space-y-1">
+                          {permitCounts.map(([type, count]) => (
+                            <div key={type} className="flex justify-between items-center">
+                              <span className="text-sm text-gray-700">{getTypeName(type)}</span>
+                              <Badge variant="outline" className="bg-green-100 text-green-800">
+                                {count}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Postulaciones */}
+                    {postulationCounts.length > 0 && (
+                      <div className="bg-blue-50 rounded-lg p-3">
+                        <h5 className="text-sm font-medium text-blue-800 mb-2">Postulaciones</h5>
+                        <div className="space-y-1">
+                          {postulationCounts.map(([type, count]) => (
+                            <div key={type} className="flex justify-between items-center">
+                              <span className="text-sm text-gray-700">{getTypeName(type)}</span>
+                              <Badge variant="outline" className="bg-blue-100 text-blue-800">
+                                {count}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Otros tipos */}
+                    {otherCounts.length > 0 && (
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <h5 className="text-sm font-medium text-gray-800 mb-2">Otros</h5>
+                        <div className="space-y-1">
+                          {otherCounts.map(([type, count]) => (
+                            <div key={type} className="flex justify-between items-center">
+                              <span className="text-sm text-gray-700">{type}</span>
+                              <Badge variant="outline" className="bg-gray-100">
+                                {count}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* Separador */}
+            <Separator className="my-3" />
+
+            {/* Lista de solicitudes individuales */}
+            <h4 className="text-sm font-semibold text-gray-700 mb-2">Detalle de solicitudes</h4>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {weekData
+                .find((day) => day.dateKey === expandedDay)
+                ?.requests.map((request) => (
+                  <div
+                    key={request.id}
+                    className="p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium text-gray-900">{request.name}</p>
+                        <p className="text-sm text-gray-500">Código: {request.code}</p>
+                      </div>
+                      <Badge
+                        className={
+                          request.status === "approved"
+                            ? "bg-green-100 text-green-800"
+                            : request.status === "rejected"
+                              ? "bg-red-100 text-red-800"
+                              : "bg-yellow-100 text-yellow-800"
+                        }
+                      >
+                        {request.status === "approved"
+                          ? "Aprobada"
+                          : request.status === "rejected"
+                            ? "Rechazada"
+                            : "Pendiente"}
+                      </Badge>
+                    </div>
+                    <div className="mt-2">
+                      <p className="text-sm font-medium text-gray-700">
+                        Tipo: <span className="font-normal">{request.type}</span>
+                      </p>
+                      {request.description && (
+                        <p className="text-sm text-gray-600 mt-1 line-clamp-2">{request.description}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              {weekData.find((day) => day.dateKey === expandedDay)?.requests.length === 0 && (
+                <p className="text-center text-gray-500 py-4">No hay solicitudes para este día</p>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
 
 export default function PermitsManagement() {
   const [activeTab, setActiveTab] = useState("permits")
@@ -342,7 +676,8 @@ export default function PermitsManagement() {
 
   const handleRequestAction = async (id: string, action: "approve" | "reject", reason: string) => {
     try {
-      await updateRequestStatus(id, action, reason || customResponse)
+      // Aquí se llama a updateRequestStatus que ahora envía { status, respuesta } al backend.
+      await updateRequestStatus(id, action, reason)
       await loadRequests()
       setSelectedRequests(null)
       setCustomResponse("")
@@ -365,10 +700,8 @@ export default function PermitsManagement() {
       await deleteRequest(request.id)
       await loadRequests()
 
-      // Calculate the number of requests on the current page after deletion
       const currentPageRequests = Object.values(filteredRequests).flat().length - (currentPage - 1) * requestsPerPage
 
-      // If the current page is empty after deletion and it's not the first page, go to the previous page
       if (currentPageRequests <= 1 && currentPage > 1 && Object.keys(filteredRequests).length > 0) {
         setCurrentPage((prev) => Math.max(1, prev - 1))
       }
@@ -505,7 +838,7 @@ export default function PermitsManagement() {
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium text-gray-900 truncate">{request.type}</p>
                           <p className="text-xs text-gray-500">
-                            {format(new Date(request.createdAt), "d MMM, yyyy", { locale: es })}
+                            {request.createdAt ? format(new Date(request.createdAt), "d MMM, yyyy", { locale: es }) : 'Fecha no disponible'}
                           </p>
                         </div>
                       </button>
@@ -696,6 +1029,17 @@ export default function PermitsManagement() {
                   color="bg-blue-50"
                 />
               </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="mb-6">
+          <Card className="bg-white shadow-sm">
+            <CardHeader>
+              <CardTitle>Solicitudes por Día de la Semana</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <WeeklyStatsDisplay requests={requests} />
             </CardContent>
           </Card>
         </div>
@@ -937,4 +1281,3 @@ export default function PermitsManagement() {
     </div>
   )
 }
-

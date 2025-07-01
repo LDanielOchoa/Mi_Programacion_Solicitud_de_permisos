@@ -5,7 +5,7 @@ from fastapi.security import OAuth2PasswordBearer
 from database import create_connection, close_connection
 
 # Configuración
-SECRET_KEY = "secret-key-123"  
+SECRET_KEY = "secret-key-123"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

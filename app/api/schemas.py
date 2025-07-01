@@ -50,7 +50,7 @@ class SolicitudResponse(BaseModel):
     description: str
     status: str
     respuesta: str
-    zona: str | None
+    zona: Optional[str] = None
     createdAt: datetime
     
 class PermitRequest2(BaseModel):

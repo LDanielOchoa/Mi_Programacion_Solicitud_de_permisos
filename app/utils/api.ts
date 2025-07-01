@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://solicitud-permisos.onrender.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://solicitud-permisos.sao6.com.co/api';
 
 export async function fetchRequests() {
   const response = await fetch(`${API_URL}/requests`);
@@ -10,7 +10,11 @@ export async function fetchRequests() {
   return response.json();
 }
 
-export async function updateRequestStatus(id: string, action: 'approve' | 'reject', reason: string) {
+export async function updateRequestStatus(
+  id: string,
+  action: 'approve' | 'reject',
+  reason: string
+) {
   const response = await fetch(`${API_URL}/requests/${id}`, {
     method: 'PUT',
     headers: {
