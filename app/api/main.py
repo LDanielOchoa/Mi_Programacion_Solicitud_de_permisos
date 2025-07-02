@@ -1,5 +1,5 @@
 from schemas import LoginRequest, LoginResponse, UserResponse, PermitRequest, EquipmentRequest, NotificationStatusUpdate, SolicitudResponse, UpdatePhoneRequest, ApprovalUpdate, PermitRequest2, UserResponse, UserResponse
-from fastapi import FastAPI, HTTPException, Depends, File, UploadFile, Form, Query, status
+from fastapi import FastAPI, HTTPException, Depends, File, UploadFile, Form, Query, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from auth import create_access_token, verify_password, get_current_user
 from fastapi.responses import JSONResponse, FileResponse
@@ -13,9 +13,42 @@ import mimetypes
 import aiofiles
 import json
 import os
+import time
 from collections import defaultdict
 
 app = FastAPI()
+
+# Middleware para monitoreo de rendimiento
+@app.middleware("http")
+async def performance_middleware(request: Request, call_next):
+    start_time = time.time()
+    
+    try:
+        response = await call_next(request)
+        execution_time = time.time() - start_time
+        
+        # Actualizar métricas solo si utils está disponible
+        try:
+            from utils import update_performance_metrics
+            update_performance_metrics(execution_time, success=True, cache_hit=False)
+        except ImportError:
+            pass
+        
+        # Agregar header con tiempo de respuesta
+        response.headers["X-Response-Time"] = f"{execution_time:.3f}s"
+        return response
+        
+    except Exception as e:
+        execution_time = time.time() - start_time
+        
+        # Actualizar métricas de error solo si utils está disponible
+        try:
+            from utils import update_performance_metrics
+            update_performance_metrics(execution_time, success=False, cache_hit=False)
+        except ImportError:
+            pass
+        
+        raise e
 
 # Configuración CORS
 app.add_middleware(
@@ -46,56 +79,109 @@ app.add_middleware(
 )
 
 @app.post("/auth/login", response_model=LoginResponse)
-def login(request: LoginRequest):
-    connection = create_connection()
-    if connection is None:
-        raise HTTPException(status_code=500, detail="Error de conexión a la base de datos")
-    
-    cursor = connection.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM users WHERE code = %s", (request.code,))
-    user = cursor.fetchone()
-    
-    close_connection(connection)
-    
-    if not user or not verify_password(request.password, user['password']):
-        raise HTTPException(status_code=400, detail="Credenciales inválidas")
-    
-    access_token = create_access_token(
-        data={"sub": user['code']}, expires_delta=timedelta(minutes=30)
-    )
-    response = {"access_token": access_token, "role": user['role']}
-    return JSONResponse(content=response, headers={"Access-Control-Allow-Origin": "*"})
+async def login(request: LoginRequest):
+    try:
+        from database import execute_query
+        from utils import log_performance, cache_query_result, get_cached_query_result
+        
+        # Intentar obtener usuario del cache primero (para casos de relogin rápido)
+        cache_key = f"user_login_{request.code}"
+        cached_user = get_cached_query_result(cache_key, ttl=30)  # Cache corto para login
+        
+        if not cached_user:
+            user = execute_query(
+                "SELECT * FROM users WHERE code = %s", 
+                (request.code,), 
+                fetch_one=True
+            )
+            if user:
+                cache_query_result(cache_key, user, ttl=30)
+        else:
+            user = cached_user
+        
+        if not user or not verify_password(request.password, user['password']):
+            raise HTTPException(status_code=400, detail="Credenciales inválidas")
+        
+        access_token = create_access_token(
+            data={"sub": user['code']}, expires_delta=timedelta(minutes=30)
+        )
+        response = {"access_token": access_token, "role": user['role']}
+        return JSONResponse(content=response, headers={"Access-Control-Allow-Origin": "*"})
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Fallback al método original si falla la optimización
+        connection = create_connection()
+        if connection is None:
+            raise HTTPException(status_code=500, detail="Error de conexión a la base de datos")
+        
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM users WHERE code = %s", (request.code,))
+        user = cursor.fetchone()
+        
+        close_connection(connection)
+        
+        if not user or not verify_password(request.password, user['password']):
+            raise HTTPException(status_code=400, detail="Credenciales inválidas")
+        
+        access_token = create_access_token(
+            data={"sub": user['code']}, expires_delta=timedelta(minutes=30)
+        )
+        response = {"access_token": access_token, "role": user['role']}
+        return JSONResponse(content=response, headers={"Access-Control-Allow-Origin": "*"})
 
 @app.get("/auth/user", response_model=UserResponse)
 def get_user_info(current_user: dict = Depends(get_current_user)):
     return {"code": current_user['code'], "name": current_user['name'], "phone": current_user['telefone']}
 
 @app.post("/update-phone")
-def update_phone(request: UpdatePhoneRequest, current_user: dict = Depends(get_current_user)):
-    connection = create_connection()
-    if connection is None:
-        raise HTTPException(status_code=500, detail="Error de conexión a la base de datos")
-    
-    cursor = connection.cursor()
+async def update_phone(request: UpdatePhoneRequest, current_user: dict = Depends(get_current_user)):
     try:
-        cursor.execute("""
-            UPDATE users 
-            SET telefone = %s
-            WHERE code = %s
-        """, (request.phone, current_user['code']))
-        connection.commit()
+        from auth import refresh_user_cache
+        from database import execute_query
+        
+        # Usar executor optimizado de queries
+        result = execute_query(
+            "UPDATE users SET telefone = %s WHERE code = %s",
+            (request.phone, current_user['code']),
+            commit=True
+        )
+        
+        if result == 0:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        
+        # Limpiar caché del usuario actualizado
+        refresh_user_cache(current_user['code'])
+        
+        return {"message": "Número de teléfono actualizado exitosamente"}
         
     except Exception as e:
-        connection.rollback()
-        print("Database error:", str(e))
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Error al actualizar el número de teléfono: {str(e)}"
-        )
-    finally:
-        close_connection(connection)
-    
-    return {"message": "Número de teléfono actualizado exitosamente"}
+        # Fallback al método original si falla la optimización
+        connection = create_connection()
+        if connection is None:
+            raise HTTPException(status_code=500, detail="Error de conexión a la base de datos")
+        
+        cursor = connection.cursor()
+        try:
+            cursor.execute("""
+                UPDATE users 
+                SET telefone = %s
+                WHERE code = %s
+            """, (request.phone, current_user['code']))
+            connection.commit()
+            
+        except Exception as fallback_e:
+            connection.rollback()
+            print("Database error:", str(fallback_e))
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Error al actualizar el número de teléfono: {str(fallback_e)}"
+            )
+        finally:
+            close_connection(connection)
+        
+        return {"message": "Número de teléfono actualizado exitosamente"}
 
 @app.post("/permit-request")
 async def create_permit_request(
@@ -325,28 +411,40 @@ def create_equipment_request(request: EquipmentRequest, current_user: dict = Dep
 
 @app.get("/users/list")
 async def get_users_list():
-    connection = create_connection()
-    if connection is None:
-        raise HTTPException(status_code=500, detail="Error de conexión a la base de datos")
-    
-    cursor = connection.cursor(dictionary=True)
     try:
-        cursor.execute("""
-            SELECT code, name 
-            FROM users 
-            WHERE role = 'employee'
-            ORDER BY code
-        """)
-        users = cursor.fetchall()
-        return users
-    except Exception as e:
-        print("Database error:", str(e))
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error al obtener la lista de usuarios: {str(e)}"
+        from database import execute_query
+        
+        # Usar executor optimizado de queries
+        users = execute_query(
+            "SELECT code, name FROM users WHERE role = 'employee' ORDER BY code",
+            fetch_all=True
         )
-    finally:
-        close_connection(connection)
+        return users or []
+        
+    except Exception as e:
+        # Fallback al método original si falla la optimización
+        connection = create_connection()
+        if connection is None:
+            raise HTTPException(status_code=500, detail="Error de conexión a la base de datos")
+        
+        cursor = connection.cursor(dictionary=True)
+        try:
+            cursor.execute("""
+                SELECT code, name 
+                FROM users 
+                WHERE role = 'employee'
+                ORDER BY code
+            """)
+            users = cursor.fetchall()
+            return users
+        except Exception as fallback_e:
+            print("Database error:", str(fallback_e))
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error al obtener la lista de usuarios: {str(fallback_e)}"
+            )
+        finally:
+            close_connection(connection)
 
 @app.get("/user/lists")
 
@@ -1272,6 +1370,46 @@ async def graphql_get():
 @app.post("/graphql")
 async def graphql_post():
     return {"message": "GraphQL endpoint not implemented. Use REST API endpoints instead."}
+
+@app.get("/stats/performance")
+async def get_performance_stats():
+    """Endpoint para obtener estadísticas de rendimiento del backend"""
+    try:
+        from utils import get_performance_stats
+        from database import connection_pool
+        
+        stats = get_performance_stats()
+        
+        # Agregar información del pool de conexiones
+        pool_info = {}
+        if connection_pool:
+            try:
+                pool_info = {
+                    "pool_size": connection_pool.pool_size,
+                    "pool_name": connection_pool.pool_name,
+                    "active_connections": "Unknown"  # mysql-connector no expone esta info fácilmente
+                }
+            except:
+                pool_info = {"status": "Pool disponible pero sin métricas detalladas"}
+        
+        return {
+            "performance_metrics": stats,
+            "database_pool": pool_info,
+            "timestamp": datetime.now().isoformat(),
+            "status": "operational"
+        }
+    except ImportError:
+        return {
+            "message": "Estadísticas de rendimiento no disponibles - módulo utils no encontrado",
+            "timestamp": datetime.now().isoformat(),
+            "status": "limited"
+        }
+    except Exception as e:
+        return {
+            "error": f"Error obteniendo estadísticas: {str(e)}",
+            "timestamp": datetime.now().isoformat(),
+            "status": "error"
+        }
 
 if __name__ == "__main__":
     import uvicorn
