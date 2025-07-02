@@ -184,14 +184,7 @@ export const createFormValidators = {
       });
     }
 
-    if (!data.userData.phone) {
-      issues.push({
-        field: 'Teléfono',
-        message: 'Número de teléfono requerido',
-        severity: 'error',
-        icon: <User className="h-3 w-3 text-red-500" />
-      });
-    }
+    // Teléfono ya no es requerido - validación removida
 
     // Tipo de solicitud
     if (!data.noveltyType) {
