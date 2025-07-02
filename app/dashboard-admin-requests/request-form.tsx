@@ -276,7 +276,6 @@ export default function PermitRequestForm() {
                 value={userData.phone}
                 readOnly
                 className="border-green-300 focus:ring-green-500 bg-gray-50"
-                required
               />
             </div>
             <div className="space-y-2">

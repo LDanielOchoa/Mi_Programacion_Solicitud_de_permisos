@@ -11,7 +11,7 @@ class Settings:
     DATABASE_POOL_SIZE: int = 10
     DATABASE_MAX_OVERFLOW: int = 20
     DATABASE_POOL_TIMEOUT: int = 30
-    DATABASE_POOL_RECYCLE: int = 3600  # 1 hora
+    DATABASE_POOL_RECYCLE: int = 3600  
     
     # Authentication
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-super-secret-key-change-in-production")
@@ -19,7 +19,7 @@ class Settings:
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     # CORS
-    ALLOWED_ORIGINS: list = ["http://localhost:3000", "http://localhost:3001"]
+    ALLOWED_ORIGINS: list = ["*"]
     
     # File Upload
     UPLOAD_DIR: str = "uploads"

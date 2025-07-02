@@ -440,16 +440,8 @@ export default function PermitRequestForm() {
       return
     }
 
-    // 5. Validar teléfono
-    if (!userData.phone || userData.phone.trim() === '') {
-      toast({
-        title: "Campo requerido",
-        description: "El número de teléfono es requerido.",
-        variant: "destructive",
-      })
-      console.error("❌ Teléfono no válido")
-      return
-    }
+    // 5. Validar teléfono (opcional)
+    // El teléfono ya no es obligatorio, pero se puede incluir si se proporciona
 
     console.log("✅ Todas las validaciones pasaron correctamente")
 
