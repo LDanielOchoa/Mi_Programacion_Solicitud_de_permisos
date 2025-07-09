@@ -826,13 +826,13 @@ export default function PermitRequestForm() {
                     <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 calendar-grid">
                       {/* Días fijos para julio 2025 */}
                       {[
-                        { day: "lun", date: 14, show: true },
-                        { day: "mar", date: 15, show: true },
-                        { day: "mie", date: 16, show: true },
-                        { day: "jue", date: 17, show: true },
-                        { day: "vie", date: 18, show: true },
-                        { day: "sab", date: 19, show: true },
-			{ day: "dom", date: 20, show: true  }
+                        { day: "lun", date: 21, show: true },
+                        { day: "mar", date: 22, show: true },
+                        { day: "mie", date: 23, show: true },
+                        { day: "jue", date: 24, show: true },
+                        { day: "vie", date: 25, show: true },
+                        { day: "sab", date: 26, show: true },
+			{ day: "dom", date: 27, show: true  }
                       ].filter(d => d.show).map((item, index) => {
                         // Crear objeto de fecha para julio 2025
                         const date = new Date(2025, 6, item.date); // Mes 6 es julio (0-indexado)
