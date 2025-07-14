@@ -1,0 +1,11 @@
+@layer components {
+    .dashboard-card {
+      @apply transition-all duration-200 hover:shadow-lg;
+    }
+    
+    .dashboard-card:hover .card-icon {
+      @apply transform scale-110;
+    }
+  }
+  
+  

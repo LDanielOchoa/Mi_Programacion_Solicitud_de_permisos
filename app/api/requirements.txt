@@ -1,0 +1,14 @@
+fastapi
+python-jose[cryptography]
+passlib[bcrypt] 
+python-multipart
+aiofiles
+uvicorn
+python-jose
+pyjwt
+uuid
+python-dotenv
+sqlalchemy
+mysql-connector-python
+mysqlclient
+mysql-connector
