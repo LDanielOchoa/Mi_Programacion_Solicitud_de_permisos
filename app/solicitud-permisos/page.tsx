@@ -2,7 +2,7 @@
 
 import { Label } from "@/components/ui/label"
 
-import React, { useState, useEffect, useRef, useCallback } from "react"
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { motion, Variants, Transition, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -27,6 +27,9 @@ import {
   List,
   Bell,
   Settings,
+  Table2,
+  Upload,
+  X,
 } from "lucide-react"
 import { format, addDays, isSameDay, startOfWeek } from "date-fns"
 import { es } from "date-fns/locale"
@@ -36,6 +39,9 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { toast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
 import BottomNavigation from '@/components/BottomNavigation'
+
+
+
 // Inlined UserInfoCard component
 interface UserInfoCardProps {
   code: string | undefined
@@ -195,19 +201,20 @@ const getFixedRangeDates = () => {
   }
 }
 
-const checkExistingPermits = async (dates: string[]) => {
+// Cambia la firma de la función para aceptar noveltyType
+const checkExistingPermits = async (dates: string[], noveltyType: string) => {
   try {
     const token = localStorage.getItem("accessToken")
     if (!token) {
       throw new Error("No se encontró el token de acceso")
     }
-    const response = await fetch("https://solicitud-permisos.sao6.com.co/api/check-existing-permits", {
+    const response = await fetch("https://solicitud-permisos.sao6.com.co/api/permits/check-existing-permits", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ dates }),
+      body: JSON.stringify({ dates, noveltyType }),
     })
     if (!response.ok) {
       throw new Error("Error al verificar permisos existentes")
@@ -219,6 +226,8 @@ const checkExistingPermits = async (dates: string[]) => {
     return false
   }
 }
+
+
 
 // Inlined useConnectionAwareSubmit hook
 interface ConnectionAwareSubmitState {
@@ -396,6 +405,11 @@ export default function PermitRequestForm() {
   const [isTypeDialogOpen, setIsTypeDialogOpen] = useState(false) // State for novelty type selection dialog
   const phoneInputRef = useRef<HTMLInputElement>(null)
   const [weekDates, setWeekDates] = useState<DateInfo[]>([])
+  const [existingPermitDates, setExistingPermitDates] = useState<string[]>([])
+  const [timeValue, setTimeValue] = useState("")
+  const [descriptionValue, setDescriptionValue] = useState("")
+
+
 
   // Memoized functions for connection aware submit hook
   const handleProgress = useCallback((stage: string) => {
@@ -436,6 +450,8 @@ export default function PermitRequestForm() {
     onConnectionIssue: handleConnectionIssue,
   })
 
+
+
   // 4. Eliminar el useEffect que simulaba la carga de usuario
   // useEffect(() => {
   //   const fetchUserData = async () => {
@@ -471,6 +487,43 @@ export default function PermitRequestForm() {
     setWeekDates(regularDates)
   }, [])
 
+  // Función para verificar permisos existentes en todas las fechas disponibles
+  const checkAllExistingPermits = useCallback(async () => {
+    if (!noveltyType || ["semanaAM", "semanaPM"].includes(noveltyType)) {
+      return
+    }
+
+    try {
+      const token = localStorage.getItem("accessToken")
+      if (!token) {
+        return
+      }
+
+      const allDates = weekDates.map(date => format(date.date, "yyyy-MM-dd"))
+      const response = await fetch("https://solicitud-permisos.sao6.com.co/api/permits/check-existing-permits", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ dates: allDates, noveltyType }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setExistingPermitDates(data.existingDates || [])
+        console.log("📅 Fechas con permisos existentes:", data.existingDates)
+      }
+    } catch (error) {
+      console.error("Error verificando permisos existentes:", error)
+    }
+  }, [noveltyType, weekDates])
+
+  // Verificar permisos existentes cuando cambie el tipo de novedad
+  useEffect(() => {
+    checkAllExistingPermits()
+  }, [checkAllExistingPermits])
+
   const handlePhoneDoubleClick = () => {
     setIsPhoneDialogOpen(true)
     setNewPhoneNumber(userData?.phone || "")
@@ -497,15 +550,26 @@ export default function PermitRequestForm() {
     }
   }
 
-  const handleDateSelect = (date: Date) => {
+  const handleDateSelect = async (date: Date) => {
     console.log("🗓️ handleDateSelect - noveltyType al inicio:", noveltyType)
     if (noveltyType === "semanaAM" || noveltyType === "semanaPM") {
       return // Do nothing if semana AM or PM is selected
     }
+
+    // Verificar si ya existe un permiso para esta fecha
+    const formattedDate = format(date, "yyyy-MM-dd")
+    const hasExistingPermit = await checkExistingPermits([formattedDate], noveltyType)
+    
+    if (hasExistingPermit) {
+      setErrorMessage(`Ya existe una solicitud de permiso para la fecha ${format(date, "dd/MM/yyyy")}. No puede seleccionar esta fecha.`)
+      setIsErrorModalOpen(true)
+      return
+    }
+
     setSelectedDates((prev) => {
       const isAlreadySelected = prev.some((d) => isSameDay(d, date))
       let newDates
-      if (["audiencia", "cita", "diaAM", "diaPM"].includes(noveltyType)) {
+      if (["audiencia", "cita", "diaAM", "diaPM", "tablaPartida"].includes(noveltyType)) {
         newDates = isAlreadySelected ? [] : [date]
       } else {
         newDates = isAlreadySelected ? prev.filter((d) => !isSameDay(d, date)) : [...prev, date]
@@ -521,75 +585,94 @@ export default function PermitRequestForm() {
     })
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
+  const validateSubmission = useCallback(() => {
+    // Registro detallado del estado actual antes de la validación
+    console.log("🔒 Validación de envío:", {
+      userData: {
+        code: userData?.code,
+        name: userData?.name,
+        phone: userData?.phone
+      },
+      noveltyType,
+      selectedDates: selectedDates.map(date => format(date, "yyyy-MM-dd")),
+      isSubmitting: connectionAwareSubmit.state.isSubmitting,
+      descriptionValue, // <-- Log para depuración
 
-    console.log("🔍 Validando datos antes del envío...")
-    console.log("📊 Estado actual:", { 
-      noveltyType, 
-      selectedDatesLength: selectedDates.length,
-      userDataCode: userData?.code,
-      userDataName: userData?.name,
     })
 
-    // 1. Validate user data
-    if (!userData || !userData.code || !userData.name || userData.code.trim() === "" || userData.name.trim() === "") {
-      setErrorMessage("Datos de usuario no válidos. Por favor, vuelve a iniciar sesión.")
+    // Validaciones de datos de usuario
+    if (!userData || !userData.code || !userData.name) {
+      setErrorMessage("Datos de usuario incompletos. Por favor, inicie sesión nuevamente.")
       setIsErrorModalOpen(true)
-      console.error("❌ Datos de usuario vacíos o inválidos")
-      return
+      return false
     }
 
-    // 2. Validate novelty type
-    if (!noveltyType || noveltyType.trim() === "") {
-      setErrorMessage("Debe seleccionar el tipo de solicitud.")
+    // Validación de tipo de novedad
+    if (!noveltyType) {
+      setErrorMessage("Debe seleccionar un tipo de novedad antes de enviar.")
       setIsErrorModalOpen(true)
-      console.error("❌ Tipo de solicitud no seleccionado")
-      return
+      return false
     }
 
-    // 3. Validate dates based on novelty type
+    // Validación de fechas según el tipo de novedad
     const requiresDates = !["semanaAM", "semanaPM"].includes(noveltyType)
     if (requiresDates && selectedDates.length === 0) {
       setErrorMessage("Debe seleccionar al menos una fecha para este tipo de solicitud.")
       setIsErrorModalOpen(true)
-      console.error("❌ No se seleccionaron fechas para tipo que las requiere:", noveltyType)
+      return false
+    }
+
+
+
+    // Validaciones específicas para tipos de novedad
+    const specificTypeValidations = {
+      "cita": () => !timeValue ? "Debe indicar la hora de la cita." : null,
+      "audiencia": () => !timeValue ? "Debe indicar la hora de la audiencia." : null,
+      "licencia": () => !descriptionValue.trim() ? "Debe proporcionar una descripción para la licencia." : null,
+      "descanso": () => !descriptionValue.trim() ? "Debe explicar el motivo del descanso." : null,
+    }
+
+    // Ejecutar validación específica si existe para el tipo de novedad
+    const specificValidation = specificTypeValidations[noveltyType as keyof typeof specificTypeValidations]
+    if (specificValidation) {
+      const validationError = specificValidation()
+      if (validationError) {
+        setErrorMessage(validationError)
+        setIsErrorModalOpen(true)
+        return false
+      }
+    }
+
+    return true
+  }, [userData, noveltyType, selectedDates, connectionAwareSubmit.state.isSubmitting, timeValue, descriptionValue])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    // Prevenir comportamientos por defecto de manera estricta
+    e.preventDefault()
+    e.stopPropagation()
+    
+    // Bloquear cualquier intento de envío si ya hay un envío en progreso
+    if (connectionAwareSubmit.state.isSubmitting) {
+      console.warn("⚠️ Intento de envío bloqueado: Solicitud en progreso")
       return
     }
 
-    // 4. Validate specific fields based on type
-    const formElement = e.target as HTMLFormElement
-    const timeValue = formElement.time?.value?.trim() || ""
-    const descriptionValue = formElement.description?.value?.trim() || ""
-
-    // Types that require specific time
-    if (["cita", "audiencia"].includes(noveltyType) && !timeValue) {
-      setErrorMessage("La hora es requerida para este tipo de solicitud.")
-      setIsErrorModalOpen(true)
-      console.error("❌ Hora requerida no proporcionada para:", noveltyType)
+    // Validación exhaustiva antes del envío
+    const isValid = validateSubmission()
+    if (!isValid) {
+      console.error("❌ Validación fallida. Envío cancelado.")
       return
     }
-
-    // Validate description for certain types
-    if (["licencia", "cita", "audiencia", "descanso", "diaAM", "diaPM"].includes(noveltyType) && !descriptionValue) {
-      setErrorMessage("La descripción es requerida para este tipo de solicitud.")
-      setIsErrorModalOpen(true)
-      console.error("❌ Descripción requerida no proporcionada para:", noveltyType)
-      return
-    }
-
-    console.log("✅ Todas las validaciones pasaron correctamente")
 
     try {
-    // Check for existing permits
-    const formattedDates = selectedDates.map((date) => format(date, "yyyy-MM-dd"))
-    const hasExistingPermit = await checkExistingPermits(formattedDates)
-    if (hasExistingPermit && ["descanso", "cita", "licencia", "audiencia", "diaAM", "diaPM"].includes(noveltyType)) {
-        setErrorMessage("Ya existe un permiso para la fecha seleccionada. No se puede realizar esta solicitud.")
-        setIsErrorModalOpen(true)
-      return
-    }
+      // Check for existing permits
+      const formattedDates = selectedDates.map((date) => format(date, "yyyy-MM-dd"))
+      const hasExistingPermit = await checkExistingPermits(formattedDates, noveltyType)
+      if (hasExistingPermit && ["descanso", "cita", "licencia", "audiencia", "diaAM", "diaPM", "tablaPartida"].includes(noveltyType)) {
+          setErrorMessage("Ya existe un permiso para una o más de las fechas seleccionadas. No se puede realizar esta solicitud.")
+          setIsErrorModalOpen(true)
+        return
+      }
 
       
       // Create FormData with FINAL validation
@@ -619,7 +702,9 @@ export default function PermitRequestForm() {
       formData.append("dates", JSON.stringify(dataToSend.dates))
       formData.append("noveltyType", dataToSend.noveltyType)
       formData.append("time", dataToSend.time)
-      formData.append("description", dataToSend.description)
+      formData.append("description", descriptionValue)
+
+
 
       const token = localStorage.getItem("accessToken")
       if (!token) {
@@ -635,29 +720,26 @@ export default function PermitRequestForm() {
       
       // Safely reset the form
       try {
-      const form = e.target as HTMLFormElement
-      form.reset()
+      // const form = e.target as HTMLFormElement
+      // form.reset() // NO limpiar el formulario así, solo limpiar los estados controlados
       } catch (resetError) {
         console.warn("Advertencia al resetear formulario:", resetError)
       }
       setSelectedDates([])
       setNoveltyType("")
       setHasShownLicenseNotification(false)
+      setTimeValue("")
+      setDescriptionValue("") // Limpiar aquí después de éxito
+
 
       // Auto-hide success message
       setTimeout(() => {
         setIsSuccess(false)
       }, 5000)
     } catch (error) {
-      console.error("❌ Error enviando solicitud:", error)
-      const msg = error instanceof Error ? error.message : "Error desconocido"
-
-      if (!msg.includes("duplicado") && !msg.includes("esperar")) {
-        setErrorMessage(`Ocurrió un error al enviar la solicitud: ${msg}`)
-        setIsErrorModalOpen(true)
-      }
-    } finally {
-      // setIsLoading(false) // This line is removed as per the edit hint
+      console.error("❌ Error en el envío:", error)
+      setErrorMessage(`Ocurrió un error inesperado: ${error instanceof Error ? error.message : "Error desconocido"}`)
+      setIsErrorModalOpen(true)
     }
   }
 
@@ -709,19 +791,10 @@ export default function PermitRequestForm() {
       iconBg: "bg-cyan-100",
     },
     {
-      id: "semanaAM",
-      label: "Semana A.M.",
-      description: "Jornada de mañana toda la semana",
-      icon: Sun,
-      color: "bg-lime-50",
-      iconColor: "text-lime-600",
-      iconBg: "bg-lime-100",
-    },
-    {
-      id: "semanaPM",
-      label: "Semana P.M.",
-      description: "Jornada de tarde toda la semana",
-      icon: Moon,
+      id: "tablaPartida",
+      label: "Tabla Partida",
+      description: "Para la jornada de tabla partida",
+      icon: Table2,
       color: "bg-green-50",
       iconColor: "text-green-600",
       iconBg: "bg-green-100",
@@ -790,15 +863,25 @@ export default function PermitRequestForm() {
 
   if (error) {
   return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="bg-white p-8 rounded-xl shadow-md text-center">
-          <h2 className="text-lg font-bold text-red-600 mb-2">Error al cargar los datos del usuario</h2>
-          <p className="text-gray-700 mb-4">{error}</p>
-          <Button onClick={fetchUserData} className="bg-emerald-600 text-white">Reintentar</Button>
-        </div>
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="bg-white p-8 rounded-xl shadow-md text-center">
+        <h2 className="text-lg font-bold text-red-600 mb-2">Error al cargar los datos del usuario</h2>
+        <p className="text-gray-700 mb-4">{error}</p>
+        <Button 
+          onClick={() => {
+            // Eliminar token de acceso
+            localStorage.removeItem('accessToken')
+            // Redirigir a la página de login
+            router.push('/')
+          }} 
+          className="bg-emerald-600 text-white"
+        >
+          Iniciar Sesión
+        </Button>
       </div>
-    )
-  }
+    </div>
+  )
+}
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-green-100">
@@ -943,7 +1026,9 @@ export default function PermitRequestForm() {
                     <Input
                       id="time"
                       type="time"
-                            className="pl-12 pr-4 py-3 border-green-200 focus:ring-green-500 bg-white shadow-sm rounded-xl text-base"
+                      value={timeValue}
+                      onChange={(e) => setTimeValue(e.target.value)}
+                      className="pl-12 pr-4 py-3 border-green-200 focus:ring-green-500 bg-white shadow-sm rounded-xl text-base"
                       required
                     />
                           <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-green-500">
@@ -986,17 +1071,33 @@ export default function PermitRequestForm() {
                             <p className="text-sm font-medium">Por favor, selecciona primero el **Tipo de Novedad** para habilitar la selección de fechas.</p>
                           </motion.div>
                         )}
+                        {/* Mensaje informativo sobre fechas con permisos existentes */}
+                        {noveltyType && existingPermitDates.length > 0 && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="col-span-full bg-red-50 text-red-800 p-4 rounded-xl flex items-center mb-4 shadow-sm border border-red-200"
+                          >
+                            <AlertCircle className="h-5 w-5 mr-3 text-red-600" />
+                            <p className="text-sm font-medium">
+                              Algunas fechas ya tienen solicitudes de permisos pendientes y no pueden ser seleccionadas.
+                            </p>
+                          </motion.div>
+                        )}
                         {weekDates.map((item, index) => {
                           const isDateSelected = selectedDates.some((d) => isSameDay(d, item.date))
                           const isHolidayDate = isHoliday(item.date).isHoliday
                           const isToday = isSameDay(item.date, new Date())
-                          const isDisabled = isHolidayDate || !noveltyType // Disable if holiday or no novelty type selected
+                          const formattedDate = format(item.date, "yyyy-MM-dd")
+                          const hasExistingPermit = existingPermitDates.includes(formattedDate)
+                          const isDisabled = isHolidayDate || !noveltyType || hasExistingPermit // Disable if holiday, no novelty type, or has existing permit
                         
                         return (
                           <button
                             key={index}
                               className={`calendar-day relative flex flex-col items-center justify-center p-3 rounded-xl transition-all duration-200 text-center
                                 ${isDateSelected ? "bg-gradient-to-br from-green-500 to-green-600 text-white shadow-lg transform scale-105"
+                                  : hasExistingPermit ? "bg-red-100 text-red-600 cursor-not-allowed opacity-80 border border-red-300"
                                   : isDisabled ? "bg-gray-100 text-gray-400 cursor-not-allowed opacity-70"
                                   : "bg-white hover:bg-green-50 border border-green-200 hover:border-green-300 hover:shadow-md"}
                                 ${isToday ? "border-2 border-blue-400 ring-2 ring-blue-200" : ""}
@@ -1021,6 +1122,11 @@ export default function PermitRequestForm() {
                                   {isHoliday(item.date).name.split(" ")[0]}
                                 </span>
                               )}
+                              {hasExistingPermit && (
+                                <span className="absolute bottom-1 text-[0.6rem] font-semibold text-red-600">
+                                  Ya solicitado
+                                </span>
+                              )}
                             {isDateSelected && (
                               <motion.div
                                 initial={{ scale: 0 }}
@@ -1028,6 +1134,15 @@ export default function PermitRequestForm() {
                                   className="absolute top-2 right-2 bg-white rounded-full p-0.5"
                               >
                                 <CheckCircle className="w-4 h-4 text-green-500" />
+                              </motion.div>
+                            )}
+                            {hasExistingPermit && (
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="absolute top-2 left-2 bg-red-500 rounded-full p-0.5"
+                              >
+                                <AlertCircle className="w-4 h-4 text-white" />
                               </motion.div>
                             )}
                           </button>
@@ -1038,12 +1153,14 @@ export default function PermitRequestForm() {
                   </CardContent>
             </motion.div>
 
+
+
             {/* Description Section */}
             <motion.div
                   className="bg-gradient-to-r from-green-50 to-white rounded-2xl border border-green-100 shadow-lg overflow-hidden"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.4 }}
+              transition={{ duration: 0.4, delay: 0.5 }}
             >
                   <div className="p-6">
                     <div className="flex items-center mb-4">
@@ -1053,8 +1170,10 @@ export default function PermitRequestForm() {
                 <div className="relative group">
                   <Textarea
                     id="description"
-                        placeholder="Ingrese el detalle de tu solicitud (ej. motivo, duración, etc.)"
-                        className="min-h-[140px] border-green-200 focus:ring-green-500 bg-white/90 shadow-sm rounded-xl p-4 text-base group-hover:border-green-300 transition-all duration-300"
+                    value={descriptionValue}
+                    onChange={(e) => setDescriptionValue(e.target.value)}
+                    placeholder="Ingrese el detalle de tu solicitud (ej. motivo, duración, etc.)"
+                    className="min-h-[140px] border-green-200 focus:ring-green-500 bg-white/90 shadow-sm rounded-xl p-4 text-base group-hover:border-green-300 transition-all duration-300"
                   />
                 </div>
           </div>
@@ -1065,7 +1184,7 @@ export default function PermitRequestForm() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: 0.5 }}
+                    transition={{ duration: 0.4, delay: 0.6 }}
                     className="bg-green-50 p-5 rounded-2xl border border-green-200 shadow-md"
                   >
                     <h3 className="text-lg font-bold text-green-800 mb-3 flex items-center">
@@ -1083,7 +1202,7 @@ export default function PermitRequestForm() {
                           ? selectedDates.map((d) => format(d, "dd/MM/yyyy")).join(", ")
                           : "No seleccionadas"}
                       </p>
-                      {/* Add more summary details here if needed, e.g., time, description snippet */}
+
                     </div>
                   </motion.div>
                 )}

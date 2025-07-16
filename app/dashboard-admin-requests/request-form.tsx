@@ -46,7 +46,7 @@ export default function PermitRequestForm() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('https://solicitud-permisos.sao6.com.co/api/users/list')
+      const response = await fetch('http://localhost:8001/users/list')
       if (!response.ok) {
         throw new Error('Error al obtener la lista de usuarios')
       }
@@ -61,7 +61,7 @@ export default function PermitRequestForm() {
     setIsCodePopoverOpen(false)
     setIsLoading(true)
     try {
-      const response = await fetch(`https://solicitud-permisos.sao6.com.co/api/user/${selectedCode}`)
+      const response = await fetch(`http://localhost:8001/user/${selectedCode}`)
       if (!response.ok) {
         throw new Error('Error al obtener datos del usuario')
       }
@@ -120,7 +120,7 @@ export default function PermitRequestForm() {
     }
 
     try {
-      const response = await fetch('https://solicitud-permisos.sao6.com.co/api/new-permit-request', {
+      const response = await fetch('http://localhost:8001/new-permit-request', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -137,7 +137,7 @@ export default function PermitRequestForm() {
       const result = await response.json()
       console.log("New permit request result:", result)
 
-      const approvalResponse = await fetch(`https://solicitud-permisos.sao6.com.co/api/update-approval/${result.id}`, {
+      const approvalResponse = await fetch(`http://localhost:8001/update-approval/${result.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -297,8 +297,7 @@ export default function PermitRequestForm() {
                   <SelectItem value="audiencia">Audiencia o curso de tránsito</SelectItem>
                   <SelectItem value="cita">Cita médica</SelectItem>
                   <SelectItem value="cambioTurno">Cambio de turno</SelectItem>
-                  <SelectItem value="semanaAM">Semana A.M.</SelectItem>
-                  <SelectItem value="semanaPM">Semana P.M.</SelectItem>
+                  <SelectItem value="semanaAM">Tabla Partida</SelectItem>
                   <SelectItem value="diaAM">Día A.M.</SelectItem>
                   <SelectItem value="diaPM">Día P.M.</SelectItem>
                 </SelectContent>

@@ -8,7 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
 import jwt from "jsonwebtoken"
-import { Eye, EyeOff, User, CheckCircle, ArrowRight, AlertCircle, Info, CreditCard, LogIn } from "lucide-react"
+import { Eye, EyeOff, User, CheckCircle, ArrowRight, AlertCircle, Info, CreditCard, LogIn, Settings, FileText, Shield, Users, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -52,6 +52,61 @@ const formVariants = {
     x: -30,
     opacity: 0,
     transition: { duration: 0.2 },
+  },
+}
+
+const modalVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { duration: 0.3 }
+  },
+  exit: {
+    opacity: 0,
+    transition: { duration: 0.2 }
+  }
+}
+
+const modalContentVariants = {
+  hidden: { 
+    scale: 0.8, 
+    opacity: 0,
+    y: 50
+  },
+  visible: {
+    scale: 1,
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring",
+      stiffness: 300,
+      damping: 25,
+      staggerChildren: 0.1
+    }
+  },
+  exit: {
+    scale: 0.8,
+    opacity: 0,
+    y: 50,
+    transition: { duration: 0.2 }
+  }
+}
+
+const optionCardVariants = {
+  hidden: { y: 30, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: { duration: 0.4, ease: "easeOut" },
+  },
+  hover: {
+    y: -8,
+    scale: 1.02,
+    transition: { duration: 0.2, ease: "easeOut" },
+  },
+  tap: {
+    scale: 0.98,
+    transition: { duration: 0.1 },
   },
 }
 
@@ -126,6 +181,184 @@ const ErrorModal = React.memo(({ isOpen, onClose }: { isOpen: boolean; onClose: 
 
 ErrorModal.displayName = "ErrorModal"
 
+// Admin Options Modal Component
+const AdminOptionsModal = React.memo(({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
+  const router = useRouter()
+
+  const handleAdminDashboard = () => {
+    router.push("/dashboard-admin-requests")
+  }
+
+  const handleRequestPermission = () => {
+    router.push("/dashboard")
+  }
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          variants={modalVariants}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          style={{ willChange: "opacity" }}
+        >
+          <motion.div
+            variants={modalContentVariants}
+            className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto relative"
+            style={{ willChange: "transform" }}
+          >
+            {/* Close button */}
+            <motion.button
+              onClick={onClose}
+              className="absolute top-4 right-4 w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors z-10"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <X className="h-4 w-4 text-gray-600" />
+            </motion.button>
+
+            <div className="p-8">
+              {/* Header */}
+              <motion.div variants={itemVariants} className="text-center mb-8">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 25, delay: 0.1 }}
+                  className="w-20 h-20 bg-gradient-to-br from-green-100 to-green-200 rounded-full mx-auto mb-6 flex items-center justify-center"
+                >
+                  <Shield className="h-10 w-10 text-green-600" />
+                </motion.div>
+                <h2 className="text-3xl font-bold text-green-700 mb-3">
+                  ¡Bienvenido Administrador!
+                </h2>
+                <p className="text-green-600 text-lg">
+                  Selecciona una opción para continuar
+                </p>
+              </motion.div>
+
+              {/* Options */}
+              <motion.div variants={itemVariants} className="grid gap-6">
+                <motion.div
+                  variants={optionCardVariants}
+                  whileHover="hover"
+                  whileTap="tap"
+                  className="cursor-pointer"
+                  onClick={handleAdminDashboard}
+                >
+                  <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden relative">
+                    <CardContent className="p-8">
+                      <div className="flex items-center space-x-6">
+                        <motion.div
+                          className="w-16 h-16 bg-gradient-to-br from-green-600 to-green-700 rounded-2xl flex items-center justify-center"
+                          whileHover={{ rotate: 5 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <Settings className="h-8 w-8 text-white" />
+                        </motion.div>
+                        <div className="flex-1">
+                          <h3 className="font-bold text-green-800 text-xl mb-2">
+                            Panel de Administración
+                          </h3>
+                          <p className="text-green-600 text-base mb-4">
+                            Gestiona usuarios, permisos y configuración del sistema
+                          </p>
+                          <div className="flex items-center space-x-4 text-sm text-green-600">
+                            <div className="flex items-center space-x-2">
+                              <Users className="h-4 w-4" />
+                              <span>Gestión de usuarios</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <CheckCircle className="h-4 w-4" />
+                              <span>Aprobación de solicitudes</span>
+                            </div>
+                          </div>
+                        </div>
+                        <motion.div
+                          className="text-green-600"
+                          whileHover={{ x: 5 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <ArrowRight className="h-6 w-6" />
+                        </motion.div>
+                      </div>
+                    </CardContent>
+                    
+                    {/* Decorative elements */}
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-green-200 rounded-full opacity-20 -translate-y-12 translate-x-12" />
+                    <div className="absolute bottom-0 left-0 w-20 h-20 bg-green-300 rounded-full opacity-20 translate-y-10 -translate-x-10" />
+                  </Card>
+                </motion.div>
+
+                <motion.div
+                  variants={optionCardVariants}
+                  whileHover="hover"
+                  whileTap="tap"
+                  className="cursor-pointer"
+                  onClick={handleRequestPermission}
+                >
+                  <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden relative">
+                    <CardContent className="p-8">
+                      <div className="flex items-center space-x-6">
+                        <motion.div
+                          className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center"
+                          whileHover={{ rotate: 5 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <FileText className="h-8 w-8 text-white" />
+                        </motion.div>
+                        <div className="flex-1">
+                          <h3 className="font-bold text-blue-800 text-xl mb-2">
+                            Solicitar Permiso
+                          </h3>
+                          <p className="text-blue-600 text-base mb-4">
+                            Crea y gestiona solicitudes de permisos y vacaciones
+                          </p>
+                          <div className="flex items-center space-x-4 text-sm text-blue-600">
+                            <div className="flex items-center space-x-2">
+                              <FileText className="h-4 w-4" />
+                              <span>Solicitudes rápidas</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <CheckCircle className="h-4 w-4" />
+                              <span>Seguimiento en tiempo real</span>
+                            </div>
+                          </div>
+                        </div>
+                        <motion.div
+                          className="text-blue-600"
+                          whileHover={{ x: 5 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <ArrowRight className="h-6 w-6" />
+                        </motion.div>
+                      </div>
+                    </CardContent>
+                    
+                    {/* Decorative elements */}
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-blue-200 rounded-full opacity-20 -translate-y-12 translate-x-12" />
+                    <div className="absolute bottom-0 left-0 w-20 h-20 bg-blue-300 rounded-full opacity-20 translate-y-10 -translate-x-10" />
+                  </Card>
+                </motion.div>
+              </motion.div>
+
+              {/* Footer */}
+              <motion.div variants={itemVariants} className="mt-8 text-center">
+                <p className="text-gray-500 text-sm">
+                  Selecciona la opción que mejor se adapte a tus necesidades
+                </p>
+              </motion.div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+})
+
+AdminOptionsModal.displayName = "AdminOptionsModal"
+
 export default function LoginPage(): ReactElement {
   const [code, setCode] = useState("")
   const [password, setPassword] = useState("")
@@ -141,12 +374,14 @@ export default function LoginPage(): ReactElement {
   const [shake, setShake] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [showSuccessAnimation, setShowSuccessAnimation] = useState(false)
+  const [showAdminModal, setShowAdminModal] = useState(false)
 
   const router = useRouter()
   const searchParams = useSearchParams()
 
   // Memoized validation function
   const validateCode = useCallback((code: string): boolean => {
+    if (code === "sao6admin") return true
     if (code.length !== 4) return false
     const numCode = Number.parseInt(code, 10)
     if (numCode < 10 && code.startsWith("000")) return true
@@ -226,12 +461,31 @@ export default function LoginPage(): ReactElement {
           localStorage.setItem("userRole", data.role)
           localStorage.setItem("userCode", userCode)
           localStorage.setItem("loginOrigin", "sao6_redirect")
+          
+          // Obtener información del usuario para guardar el nombre
+          try {
+            const userResponse = await fetch(`${apiUrl}/auth/user`, {
+              headers: {
+                Authorization: `Bearer ${data.access_token}`,
+                "Content-Type": "application/json",
+              },
+            })
+            
+            if (userResponse.ok) {
+              const userData = await userResponse.json()
+              localStorage.setItem("userName", userData.name || "Administrador")
+            }
+          } catch (error) {
+            console.warn("No se pudo obtener el nombre del usuario:", error)
+            localStorage.setItem("userName", "Administrador")
+          }
 
           setShowSuccessAnimation(true)
 
           setTimeout(() => {
             if (data.role === "admin" || data.role === "testers") {
-              router.push("/dashboard-admin-requests")
+              setShowAdminModal(true)
+              setShowSuccessAnimation(false)
             } else {
               router.push("/dashboard")
             }
@@ -261,6 +515,12 @@ export default function LoginPage(): ReactElement {
   )
 
   const handleNextStep = useCallback(() => {
+    if (code === "sao6admin") {
+      setShowAdminModal(true)
+      setError("")
+      return
+    }
+
     if (!validateCode(code)) {
       setError("El código debe tener 4 dígitos. Use ceros a la izquierda si es necesario (ej: 0025).")
       setShake(true)
@@ -275,7 +535,7 @@ export default function LoginPage(): ReactElement {
     async (e: React.FormEvent) => {
       e.preventDefault()
 
-      if (formStep === 0 && code !== "sao6admin") {
+      if (formStep === 0) {
         handleNextStep()
         return
       }
@@ -311,12 +571,31 @@ export default function LoginPage(): ReactElement {
           localStorage.setItem("accessToken", data.access_token)
           localStorage.setItem("userRole", data.role)
           localStorage.setItem("userCode", code)
+          
+          // Obtener información del usuario para guardar el nombre
+          try {
+            const userResponse = await fetch(`${apiUrl}/auth/user`, {
+              headers: {
+                Authorization: `Bearer ${data.access_token}`,
+                "Content-Type": "application/json",
+              },
+            })
+            
+            if (userResponse.ok) {
+              const userData = await userResponse.json()
+              localStorage.setItem("userName", userData.name || "Administrador")
+            }
+          } catch (error) {
+            console.warn("No se pudo obtener el nombre del usuario:", error)
+            localStorage.setItem("userName", "Administrador")
+          }
 
           setShowSuccessAnimation(true)
 
           setTimeout(() => {
             if (data.role === "admin" || data.role === "testers") {
-              router.push("/dashboard-admin-requests")
+              setShowAdminModal(true)
+              setShowSuccessAnimation(false)
             } else {
               router.push("/dashboard")
             }
@@ -344,6 +623,14 @@ export default function LoginPage(): ReactElement {
   )
 
   const handleBackToCode = useCallback(() => {
+    setFormStep(0)
+    setError("")
+  }, [])
+
+  const handleCloseAdminModal = useCallback(() => {
+    setShowAdminModal(false)
+    setCode("")
+    setPassword("")
     setFormStep(0)
     setError("")
   }, [])
@@ -497,13 +784,16 @@ export default function LoginPage(): ReactElement {
                           type="text"
                           value={code}
                           onChange={(e) => {
-                            const value = e.target.value.replace(/\D/g, "").slice(0, 4)
-                            setCode(value)
+                            const value = e.target.value
+                            if (value === "sao6admin") {
+                              setCode(value)
+                            } else {
+                              setCode(value.replace(/\D/g, "").slice(0, 4))
+                            }
                           }}
                           className="pl-10 md:pl-12 border-green-200 focus:border-green-600 focus:ring-green-600 text-base md:text-lg tracking-wide h-11 md:h-12 bg-white/70 shadow-sm"
                           placeholder="0000"
                           required
-                          maxLength={4}
                           autoFocus
                         />
                         {code && (
@@ -518,7 +808,7 @@ export default function LoginPage(): ReactElement {
                           </motion.div>
                         )}
                       </div>
-                      {code.length > 0 && code.length < 4 && (
+                      {code.length > 0 && code.length < 4 && code !== "sao6admin" && (
                         <motion.p
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -551,10 +841,9 @@ export default function LoginPage(): ReactElement {
                       transition={{ delay: 0.2 }}
                     >
                       <Button
-                        type={code === "sao6admin" ? "submit" : "button"}
-                        onClick={code === "sao6admin" ? undefined : handleNextStep}
+                        type="submit"
                         className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold py-2.5 rounded-lg transition-all duration-300 transform hover:scale-[1.01] shadow-md hover:shadow-lg h-11 md:h-12 text-sm md:text-base"
-                        disabled={isLoading || code.length !== 4}
+                        disabled={isLoading || !validateCode(code)}
                       >
                         {isLoading ? (
                           <div className="flex items-center justify-center gap-2">
@@ -802,6 +1091,9 @@ export default function LoginPage(): ReactElement {
           </motion.div>
         </div>
       </motion.div>
+
+      {/* Admin Options Modal */}
+      <AdminOptionsModal isOpen={showAdminModal} onClose={handleCloseAdminModal} />
 
       {isLoading && <LoadingOverlay />}
       <ErrorModal isOpen={showErrorModal} onClose={() => setShowErrorModal(false)} />

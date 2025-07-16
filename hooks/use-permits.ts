@@ -10,6 +10,7 @@ export type Request = {
   code: string
   name: string
   type: string
+  time: string
   status: string
   createdAt: string
   description?: string

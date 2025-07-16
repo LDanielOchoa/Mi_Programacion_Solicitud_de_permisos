@@ -28,6 +28,7 @@ import {
   X
 } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { 
   Card as UICard, 
   CardContent as UICardContent, 
@@ -232,6 +233,7 @@ const SearchBar: React.FC<{ onSearch: (query: string) => void }> = ({ onSearch }
 
 export default function Dashboard() {
   const { userData, isLoading: isUserLoading } = useUserData()
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [isDataLoading, setIsDataLoading] = useState(true)
   const [hasNewNotification, setHasNewNotification] = useState(false)
@@ -247,6 +249,13 @@ export default function Dashboard() {
     rejected: 0,
   })
 
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!isUserLoading && !userData) {
+      router.push('/')
+    }
+  }, [isUserLoading, userData, router])
+
   // Actualizar tiempo
   useEffect(() => {
     const timer = setInterval(() => {
@@ -255,7 +264,6 @@ export default function Dashboard() {
     return () => clearInterval(timer)
   }, [])
 
-  // Cargar solicitudes cuando los datos de usuario estén disponibles
   useEffect(() => {
     if (userData && userData.code) {
       fetchRequests(userData.code)
@@ -266,6 +274,10 @@ export default function Dashboard() {
   useEffect(() => {
     setIsLoading(isUserLoading)
   }, [isUserLoading])
+
+  if (isUserLoading || !userData) {
+    return <LoadingOverlay />
+  }
 
   const formatDate = (dateString: string) => {
     try {
@@ -331,7 +343,7 @@ export default function Dashboard() {
         return
       }
 
-      const response = await fetch('https://solicitud-permisos.sao6.com.co/api/admin/solicitudes', {
+      const response = await fetch('http://localhost:8001/admin/solicitudes', {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",

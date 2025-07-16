@@ -4,6 +4,14 @@ import withPWA from '@ducanh2912/next-pwa';
 const nextConfig = {
   // tu configuración de Next.js existente podría ir aquí
   reactStrictMode: true,
+  async rewrites() {
+    return [
+      {
+        source: '/operator/:path*',
+        destination: 'https://solicitud-permisos.sao6.com.co/api/operator/:path*',
+      },
+    ];
+  },
 };
 
 const pwaConfig = withPWA({

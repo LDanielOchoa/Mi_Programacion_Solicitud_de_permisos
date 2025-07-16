@@ -60,7 +60,7 @@ export default function EquipmentRequestForm() {
           return
         }
 
-        const response = await fetch('https://solicitud-permisos.sao6.com.co/api/auth/user', {
+        const response = await fetch('http://localhost:8001/auth/user', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -89,7 +89,7 @@ export default function EquipmentRequestForm() {
 
     const fetchUsersList = async () => {
       try {
-        const response = await fetch('https://solicitud-permisos.sao6.com.co/api/users/list')
+        const response = await fetch('http://localhost:8001/users/list')
         if (!response.ok) {
           throw new Error('Error al obtener la lista de usuarios')
         }
@@ -151,7 +151,7 @@ export default function EquipmentRequestForm() {
         throw new Error('No se encontró el token de acceso')
       }
 
-      const response = await fetch('https://solicitud-permisos.sao6.com.co/api/equipment-request', {
+      const response = await fetch('http://localhost:8001/equipment-request', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

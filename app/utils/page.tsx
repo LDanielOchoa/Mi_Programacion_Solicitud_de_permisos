@@ -50,7 +50,7 @@ export default function Solicitudes() {
         const token = localStorage.getItem('accessToken')
         if (!token) return
 
-        const response = await fetch('https://solicitud-permisos.sao6.com.co/api/auth/user', {
+        const response = await fetch('http://localhost:8001/auth/user', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -71,7 +71,7 @@ export default function Solicitudes() {
         const token = localStorage.getItem('accessToken')
         if (!token) return
 
-        const response = await fetch('https://solicitud-permisos.sao6.com.co/api/solicitudes', {
+        const response = await fetch('http://localhost:8001/solicitudes', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'

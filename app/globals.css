@@ -89,6 +89,10 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  body.modal-open {
+    overflow: hidden;
+  }
 }
 
 .scrollbar-hide::-webkit-scrollbar {

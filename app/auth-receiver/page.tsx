@@ -29,7 +29,7 @@ export default function AuthReceiver() {
           setMessage("Autenticando automáticamente...")
 
           // Realizar la solicitud de inicio de sesión
-          const response = await fetch("https://solicitud-permisos.sao6.com.co/api/auth/login", {
+          const response = await fetch("http://localhost:8001/auth/login", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -62,19 +62,19 @@ export default function AuthReceiver() {
             setError(data.msg || "Credenciales inválidas")
             setMessage("Error de autenticación. Redirigiendo al inicio de sesión...")
             setTimeout(() => {
-              router.push("/login")
+              router.push("/")
             }, 2000)
           }
         } else {
           // No hay credenciales, redirigir al login normal
-          router.push("/login")
+          router.push("/")
         }
       } catch (error) {
         console.error("Error en el inicio de sesión automático:", error)
         setError("Error de conexión")
         setMessage("Error de conexión. Redirigiendo al inicio de sesión...")
         setTimeout(() => {
-          router.push("/login")
+          router.push("/")
         }, 2000)
       }
     }
