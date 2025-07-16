@@ -24,28 +24,33 @@ const admin = new Hono<{
 admin.get('/requests', getCurrentUser, requireAdmin, async (c) => {
   try {
     const page = parseInt(c.req.query('page') || '1', 10);
-    const limit = parseInt(c.req.query('limit') || '20', 10);
+        let limit = parseInt(c.req.query('limit') || '20', 10);
     const offset = (page - 1) * limit;
+    
 
     logger.info({ page, limit, offset }, 'Obteniendo solicitudes con paginación');
 
     // Union de ambas tablas para poder ordenar y paginar sobre el conjunto completo
-    const unionQuery = `
-      (SELECT id, code, name, telefono as phone, fecha as dates, hora as time,
-              tipo_novedad as type, tipo_novedad as noveltyType, description,
-              files, time_created as createdAt, solicitud as status,
-              respuesta as reason, notifications, 'permiso' as request_type,
-              NULL as zona, NULL as codeAM, NULL as codePM, NULL as shift
-       FROM permit_perms)
+        let unionQuery = `
+      (SELECT p.id, p.code, p.name, p.telefono as phone, p.fecha as dates, p.hora as time,
+              p.tipo_novedad as type, p.tipo_novedad as noveltyType, p.description,
+              p.files, p.time_created as createdAt, p.solicitud as status,
+              p.respuesta as reason, p.notifications, 'permiso' as request_type,
+              NULL as zona, NULL as codeAM, NULL as codePM, NULL as shift,
+              u.password
+       FROM permit_perms p
+       LEFT JOIN users u ON p.code = u.code)
       UNION ALL
-      (SELECT id, code, name, NULL as phone, NULL as dates, NULL as time,
-              tipo_novedad as type, tipo_novedad as noveltyType, description,
-              NULL as files, time_created as createdAt, solicitud as status, 
-              respuesta as reason, notifications, 'equipo' as request_type,
-              zona, comp_am as codeAM, comp_pm as codePM, turno as shift
-       FROM permit_post)
+      (SELECT p.id, p.code, p.name, NULL as phone, NULL as dates, NULL as time,
+              p.tipo_novedad as type, p.tipo_novedad as noveltyType, p.description,
+              NULL as files, p.time_created as createdAt, p.solicitud as status, 
+              p.respuesta as reason, p.notifications, 'equipo' as request_type,
+              p.zona, p.comp_am as codeAM, p.comp_pm as codePM, p.turno as shift,
+              u.password
+       FROM permit_post p
+       LEFT JOIN users u ON p.code = u.code)
       ORDER BY createdAt DESC
-      LIMIT ? OFFSET ?
+            LIMIT ? OFFSET ?
     `;
 
     const totalCountQuery = `
@@ -59,8 +64,14 @@ admin.get('/requests', getCurrentUser, requireAdmin, async (c) => {
     
     logger.debug({ unionQuery, totalCountQuery }, 'Ejecutando consultas SQL');
 
+        const queryParams = limit === -1 ? [] : [limit, offset];
+
+    if (limit === -1) {
+      unionQuery = unionQuery.replace('LIMIT ? OFFSET ?', '');
+    }
+
     const [allRequests, totalResult] = await Promise.all([
-      executeQuery<any[]>(unionQuery, [limit, offset], { fetchAll: true }),
+            executeQuery<any[]>(unionQuery, queryParams, { fetchAll: true }),
       executeQuery<{ total: number }>(totalCountQuery, [], { fetchOne: true })
     ]);
 
@@ -114,41 +125,45 @@ admin.get('/requests/:code', async (c) => {
 
   const permitRequests = await executeQuery<any[]>(
     `SELECT
-        id,
-        code,
-        name,
-        telefono as phone,
-        fecha as dates,
-        hora as time,
-        tipo_novedad as type,
-        tipo_novedad as noveltyType,
-        description,
-        files,
-        time_created as createdAt,
-        solicitud as status,
-        respuesta as reason,
-        notifications
-      FROM permit_perms
-      WHERE code = ? AND notifications = '0'`,
+        p.id,
+        p.code,
+        p.name,
+        p.telefono as phone,
+        p.fecha as dates,
+        p.hora as time,
+        p.tipo_novedad as type,
+        p.tipo_novedad as noveltyType,
+        p.description,
+        p.files,
+        p.time_created as createdAt,
+        p.solicitud as status,
+        p.respuesta as reason,
+        p.notifications,
+        u.password
+      FROM permit_perms p
+      LEFT JOIN users u ON p.code = u.code
+      WHERE p.code = ? AND p.notifications = '0'`,
     [code], { fetchAll: true }
   );
   const equipmentRequests = await executeQuery<any[]>(
     `SELECT
-        id,
-        code,
-        name,
-        tipo_novedad as type,
-        description,
-        time_created as createdAt,
-        solicitud as status,
-        respuesta as reason,
-        notifications,
-        zona,
-        comp_am as codeAM,
-        comp_pm as codePM,
-        turno as shift
-      FROM permit_post
-      WHERE code = ? AND notifications = '0'`,
+        p.id,
+        p.code,
+        p.name,
+        p.tipo_novedad as type,
+        p.description,
+        p.time_created as createdAt,
+        p.solicitud as status,
+        p.respuesta as reason,
+        p.notifications,
+        p.zona,
+        p.comp_am as codeAM,
+        p.comp_pm as codePM,
+        p.turno as shift,
+        u.password
+      FROM permit_post p
+      LEFT JOIN users u ON p.code = u.code
+      WHERE p.code = ? AND p.notifications = '0'`,
     [code], { fetchAll: true }
   );
 
@@ -366,6 +381,246 @@ admin.get('/history/:code', async (c) => {
     }
   }
   return c.json(history || []);
+});
+
+// GET /requests/{id}/history - Obtener historial de una solicitud específica
+admin.get('/requests/:id/history', getCurrentUser, requireAdmin, async (c) => {
+  try {
+    const id = parseInt(c.req.param('id') || '0', 10);
+    
+    if (!id) {
+      throw new HTTPException(400, { message: 'ID de solicitud requerido' });
+    }
+
+    logger.info({ requestId: id }, 'Obteniendo historial de solicitud');
+
+    // Buscar en ambas tablas para encontrar la solicitud
+    const permitRequest = await executeQuery<any>(
+      `SELECT 
+        id,
+        code,
+        name,
+        tipo_novedad as type,
+        time_created as createdAt,
+        solicitud as status,
+        fecha as requestedDates,
+        respuesta as reason,
+        'permiso' as request_type
+      FROM permit_perms 
+      WHERE id = ?`,
+      [id],
+      { fetchOne: true }
+    );
+
+    const equipmentRequest = await executeQuery<any>(
+      `SELECT 
+        id,
+        code,
+        name,
+        tipo_novedad as type,
+        time_created as createdAt,
+        solicitud as status,
+        zona as requestedDates,
+        respuesta as reason,
+        'equipo' as request_type
+      FROM permit_post 
+      WHERE id = ?`,
+      [id],
+      { fetchOne: true }
+    );
+
+    const request = permitRequest || equipmentRequest;
+
+    if (!request) {
+      throw new HTTPException(404, { message: 'Solicitud no encontrada' });
+    }
+
+    // Crear historial basado en la solicitud encontrada
+    const history = [
+      {
+        id: `hist_${request.id}_1`,
+        type: 'Solicitud creada',
+        createdAt: request.createdAt,
+        status: 'created',
+        description: `Solicitud de ${request.request_type} creada por ${request.name}`
+      }
+    ];
+
+    // Agregar entrada de cambio de estado si no está pendiente
+    if (request.status !== 'pending') {
+      history.push({
+        id: `hist_${request.id}_2`,
+        type: `Solicitud ${request.status === 'approved' ? 'aprobada' : 'rechazada'}`,
+        createdAt: request.createdAt, // Usar la misma fecha por ahora
+        status: request.status,
+        description: request.reason || `Solicitud ${request.status === 'approved' ? 'aprobada' : 'rechazada'}`
+      });
+    }
+
+    // Agregar entrada de notificación si existe
+    if (request.notifications === '1') {
+      history.push({
+        id: `hist_${request.id}_3`,
+        type: 'Notificación enviada',
+        createdAt: request.createdAt,
+        status: 'notified',
+        description: 'Notificación enviada al solicitante'
+      });
+    }
+
+    logger.info({ 
+      requestId: id, 
+      historyCount: history.length 
+    }, 'Historial de solicitud obtenido exitosamente');
+
+    return c.json({
+      history: history,
+      request: {
+        id: request.id,
+        type: request.type,
+        status: request.status,
+        requestedDates: request.requestedDates,
+        createdAt: request.createdAt
+      }
+    });
+
+  } catch (error) {
+    if (error instanceof HTTPException) {
+      throw error;
+    }
+    
+    logger.error({ 
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      requestId: c.req.param('id')
+    }, 'Error al obtener historial de solicitud');
+    
+    throw new HTTPException(500, { 
+      message: 'Error interno del servidor al obtener el historial' 
+    });
+  }
+});
+
+// GET /requests/user/{code}/history - Obtener historial completo de solicitudes de una persona
+admin.get('/requests/user/:code/history', getCurrentUser, requireAdmin, async (c) => {
+  try {
+    const userCode = c.req.param('code');
+    
+    if (!userCode) {
+      throw new HTTPException(400, { message: 'Código de usuario requerido' });
+    }
+
+    logger.info({ userCode }, 'Obteniendo historial completo de usuario');
+
+    // Obtener todas las solicitudes de permisos del usuario
+    const permitRequests = await executeQuery<any[]>(
+      `SELECT 
+        id,
+        code,
+        name,
+        tipo_novedad as type,
+        time_created as createdAt,
+        solicitud as status,
+        fecha as requestedDates,
+        respuesta as reason,
+        description,
+        'permiso' as request_type
+      FROM permit_perms 
+      WHERE code = ?
+      ORDER BY time_created DESC`,
+      [userCode],
+      { fetchAll: true }
+    );
+
+    // Obtener todas las solicitudes de equipos del usuario
+    const equipmentRequests = await executeQuery<any[]>(
+      `SELECT 
+        id,
+        code,
+        name,
+        tipo_novedad as type,
+        time_created as createdAt,
+        solicitud as status,
+        zona as requestedDates,
+        respuesta as reason,
+        description,
+        'equipo' as request_type
+      FROM permit_post 
+      WHERE code = ?
+      ORDER BY time_created DESC`,
+      [userCode],
+      { fetchAll: true }
+    );
+
+    // Combinar y ordenar todas las solicitudes
+    const allRequests = [...(permitRequests || []), ...(equipmentRequests || [])]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    // Crear historial detallado
+    const history = allRequests.map((request, index) => {
+      const baseHistory = [
+        {
+          id: `hist_${request.id}_created`,
+          type: `Solicitud de ${request.request_type}`,
+          createdAt: request.createdAt,
+          status: request.status, // Usar el estado real de la base de datos
+          description: `${request.type} - ${request.description || 'Sin descripción'}`,
+          requestedDates: request.requestedDates,
+          requestId: request.id,
+          requestType: request.request_type
+        }
+      ];
+
+      // Agregar entrada de respuesta si no está pendiente
+      if (request.status !== 'pending' && request.reason) {
+        baseHistory.push({
+          id: `hist_${request.id}_${request.status}`,
+          type: `Solicitud ${request.status === 'approved' ? 'aprobada' : 'rechazada'}`,
+          createdAt: request.createdAt,
+          status: request.status,
+          description: request.reason,
+          requestedDates: request.requestedDates,
+          requestId: request.id,
+          requestType: request.request_type
+        });
+      }
+
+      return baseHistory;
+    }).flat();
+
+    logger.info({ 
+      userCode, 
+      totalRequests: allRequests.length,
+      historyCount: history.length 
+    }, 'Historial completo de usuario obtenido exitosamente');
+
+    return c.json({
+      history: history,
+      userInfo: {
+        code: userCode,
+        name: allRequests[0]?.name || 'Usuario',
+        totalRequests: allRequests.length,
+        totalPermits: permitRequests?.length || 0,
+        totalEquipment: equipmentRequests?.length || 0
+      },
+      requests: allRequests
+    });
+
+  } catch (error) {
+    if (error instanceof HTTPException) {
+      throw error;
+    }
+    
+    logger.error({ 
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      userCode: c.req.param('code')
+    }, 'Error al obtener historial completo de usuario');
+    
+    throw new HTTPException(500, { 
+      message: 'Error interno del servidor al obtener el historial completo' 
+    });
+  }
 });
 
 // GET /test-db - Ruta de prueba para verificar la base de datos

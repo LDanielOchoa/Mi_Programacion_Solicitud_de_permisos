@@ -117,4 +117,19 @@ auth.get('/users/list', async (c) => {
   return c.json(users || []);
 });
 
+// POST /auth/refresh - Renovar token de acceso
+auth.post('/refresh', getCurrentUser, async (c) => {
+  const currentUser = c.get('currentUser') as User;
+  
+  // Crear nuevo token de acceso
+  const newAccessToken = await createAccessToken({ sub: currentUser.code });
+  
+  logger.info({ code: currentUser.code }, 'Token renovado exitosamente');
+  
+  return c.json({
+    accessToken: newAccessToken,
+    message: 'Token renovado exitosamente'
+  });
+});
+
 export default auth; 

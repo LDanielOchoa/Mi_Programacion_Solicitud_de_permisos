@@ -7,7 +7,7 @@ import logger from '../config/logger.js';
 import { cache } from '../lib/cache-manager.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'tu_clave_secreta_jwt_muy_segura_aqui';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '30m';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '2h'; // Cambiado de 30m a 2h
 
 // Función para crear token JWT
 export const createAccessToken = async (data: { sub: string }, expiresIn?: string): Promise<string> => {

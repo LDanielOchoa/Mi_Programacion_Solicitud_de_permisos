@@ -252,6 +252,38 @@ permits.post('/check-existing-requests', getCurrentUser, async (c) => {
   return c.json({ hasExistingRequest: (result?.count || 0) > 0 });
 });
 
+// POST /check-existing-permits - Verificar permisos existentes por fecha específica
+permits.post('/check-existing-permits', getCurrentUser, async (c) => {
+  const currentUser = c.get('currentUser') as User;
+  const body = await c.req.json();
+  const { dates, noveltyType }: { dates: string[], noveltyType: string } = body;
+  
+  if (!dates || dates.length === 0 || !noveltyType) {
+    return c.json({ hasExistingPermit: false, existingDates: [] });
+  }
+  
+  const dateStrings = dates.map(date => new Date(date).toISOString().split('T')[0]);
+  // Traer todas las filas del usuario con ese tipo de novedad
+  const result = await executeQuery<any[]>(
+    `SELECT fecha FROM permit_perms WHERE code = ? AND tipo_novedad = ? AND solicitud != 'rejected'`,
+    [currentUser.code, noveltyType]
+  );
+
+  let existingDates: string[] = [];
+  for (const row of result) {
+    if (row && row.fecha) {
+      const fechas = row.fecha.split(',').map((f: string) => f.trim());
+      existingDates.push(...fechas.filter((f: string) => dateStrings.includes(f)));
+    }
+  }
+  existingDates = [...new Set(existingDates)];
+
+  return c.json({
+    hasExistingPermit: existingDates.length > 0,
+    existingDates
+  });
+});
+
 // GET /permit-request/{id} - Obtener solicitud específica
 permits.get('/permit-request/:id', async (c) => {
   const id = parseInt(c.req.param('id') || '0', 10);

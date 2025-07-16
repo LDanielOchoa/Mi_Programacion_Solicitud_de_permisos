@@ -21,6 +21,7 @@ import permits from './routes/permits.js';
 import equipment from './routes/equipment.js';
 import excel from './routes/excel.js';
 import users from './routes/users.js';
+import operator from './routes/operator.js';
 
 const app = new Hono();
 
@@ -31,16 +32,14 @@ app.use('*', requestLogger);
 app.use('*', performanceMiddleware);
 app.use('*', rateLimiter.limit);  // Agregar rate limiter a todas las rutas
 
-// Rutas de la API
-const api = new Hono();
-api.route('/auth', auth);
-api.route('/admin', admin);
-api.route('/permits', permits);
-api.route('/equipment', equipment);
-api.route('/excel', excel);
-api.route('/users', users);
-
-app.route('/api', api);
+// Rutas de la API - Configuradas directamente sin prefijo /api
+app.route('/auth', auth);
+app.route('/admin', admin);
+app.route('/permits', permits);
+app.route('/equipment', equipment);
+app.route('/excel', excel);
+app.route('/users', users);
+app.route('/operator', operator);
 
 // Ruta raíz
 app.get('/', (c) => c.text('Servidor Hono funcionando!'));
