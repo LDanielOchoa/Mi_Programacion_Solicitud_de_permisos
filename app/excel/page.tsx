@@ -350,11 +350,11 @@ export default function HistoricalRecords() {
     try {
       // Determinar qué endpoint usar
       // Por defecto usamos el endpoint general
-      let url = "http://localhost:8001/excel"
+      let url = "https://solicitud-permisos.sao6.com.co/api/excel"
 
       // Si estamos filtrando por estado "aprobado", podemos usar el endpoint específico
       if (filterStatus === "aprobado") {
-        url = "http://localhost:8001/excel-novedades"
+        url = "https://solicitud-permisos.sao6.com.co/api/excel-novedades"
       }
 
       const params = new URLSearchParams()
@@ -370,7 +370,7 @@ export default function HistoricalRecords() {
 
       // Solo añadimos el parámetro de estado si no estamos usando el endpoint de novedades
       // ya que ese endpoint ya filtra por aprobados
-      if (filterStatus !== "all" && url !== "http://localhost:8001/excel-novedades") {
+      if (filterStatus !== "all" && url !== "https://solicitud-permisos.sao6.com.co/api/excel-novedades") {
         const apiStatus =
           filterStatus === "aprobado" ? "approved" : filterStatus === "rechazado" ? "rejected" : "pending"
         params.append("status", apiStatus)
@@ -417,7 +417,7 @@ export default function HistoricalRecords() {
           // Para el endpoint excel-novedades, sabemos que todos son aprobados
           let estado: "aprobado" | "rechazado" | "pendiente" = "pendiente" // Por defecto es pendiente
 
-          if (url === "http://localhost:8001/excel-novedades") {
+          if (url === "https://solicitud-permisos.sao6.com.co/api/excel-novedades") {
             estado = "aprobado" // Todos los registros de este endpoint son aprobados
           } else {
             // Para el endpoint general, intentamos inferir el estado

@@ -29,7 +29,7 @@ export default function AuthReceiver() {
           setMessage("Autenticando automáticamente...")
 
           // Realizar la solicitud de inicio de sesión
-          const response = await fetch("http://localhost:8001/auth/login", {
+          const response = await fetch("https://solicitud-permisos.sao6.com.co/api/auth/login", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

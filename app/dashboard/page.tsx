@@ -343,7 +343,7 @@ export default function Dashboard() {
         return
       }
 
-      const response = await fetch('http://localhost:8001/admin/solicitudes', {
+      const response = await fetch('https://solicitud-permisos.sao6.com.co/api/admin/solicitudes', {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
