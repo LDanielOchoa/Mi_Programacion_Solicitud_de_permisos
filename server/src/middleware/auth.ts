@@ -1,7 +1,8 @@
 import { Context, Next } from 'hono';
 import { HTTPException } from 'hono/http-exception';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import { executeQuery } from '../config/database.js';
+import { getEmployeeFromSE } from '../config/sqlserver.js';
 import { User, JWTPayload } from '../types/index.js';
 import logger from '../config/logger.js';
 import { cache } from '../lib/cache-manager.js';
@@ -16,7 +17,9 @@ export const createAccessToken = async (data: { sub: string }, expiresIn?: strin
     iat: Math.floor(Date.now() / 1000),
   };
   
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: expiresIn || JWT_EXPIRES_IN });
+  return jwt.sign(payload, JWT_SECRET, { 
+    expiresIn: expiresIn || JWT_EXPIRES_IN 
+  } as SignOptions);
 };
 
 // Función para verificar contraseña
@@ -61,6 +64,32 @@ export const getCurrentUser = async (c: Context, next: Next) => {
         [payload.sub],
         { fetchOne: true }
       );
+      
+      // Si no se encuentra en users, buscar en SE_w0550
+      if (!user) {
+        logger.debug({ sub: payload.sub }, 'Usuario no encontrado en tabla users, buscando en SE_w0550');
+        const employee = await getEmployeeFromSE(payload.sub);
+        if (employee) {
+          // Crear objeto User compatible desde datos de SE_w0550
+          user = {
+            code: employee.cedula,
+            name: employee.nombre,
+            telefone: '', 
+            cargo: employee.cargo,
+            role: 'employee', 
+            password: '', 
+            email: employee.email || '',
+            userType: 'se_maintenance' // Marcar como usuario de SE_w0550
+          } as User;
+          logger.info({ 
+            cedula: employee.cedula, 
+            nombre: employee.nombre, 
+            userType: 'se_maintenance',
+            centroCosto: employee.centroCosto 
+          }, 'Usuario de mantenimiento encontrado en SE_w0550');
+        }
+      }
+      
       if (user) {
         cache.set(cacheKey, user, 300); // Cache por 5 minutos
         logger.debug({ cacheKey }, 'Usuario guardado en caché');
@@ -68,7 +97,7 @@ export const getCurrentUser = async (c: Context, next: Next) => {
     }
     
     if (!user) {
-      logger.warn({ sub: payload.sub }, 'Usuario no encontrado en la base de datos');
+      logger.warn({ sub: payload.sub }, 'Usuario no encontrado en ninguna tabla');
       throw new HTTPException(401, { message: 'Usuario no encontrado' });
     }
     

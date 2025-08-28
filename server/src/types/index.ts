@@ -6,6 +6,7 @@ export interface User {
   password: string;
   role: 'admin' | 'employee';
   cargo?: string;
+  userType?: 'registered' | 'se_maintenance'; // Tipo de autenticación del usuario
   created_at?: Date;
   updated_at?: Date;
 }
@@ -41,7 +42,7 @@ export interface PermitRequest {
   noveltyType: string;
   time?: string;
   description: string;
-  files?: Express.Multer.File[];
+  files?: File[];
 }
 
 export interface PermitRequest2 {
@@ -99,6 +100,12 @@ export interface DateCheck {
 export interface FileUpload {
   fileName: string;
   fileUrl: string;
+  originalName?: string;
+  size?: number;
+  sizeFormatted?: string;
+  type?: string;
+  uploadTime?: string;
+  metadata?: any;
 }
 
 export interface HistoryRecord {

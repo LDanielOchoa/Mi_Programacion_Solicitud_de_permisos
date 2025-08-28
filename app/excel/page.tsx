@@ -174,6 +174,15 @@ export default function HistoricalRecords() {
           // Handle DD/MM/YYYY format
           date = new Date(Number.parseInt(parts[2]), Number.parseInt(parts[1]) - 1, Number.parseInt(parts[0]))
         }
+      } else if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        // Para formato YYYY-MM-DD, añadir T00:00:00 para evitar problemas de zona horaria
+        const dateWithTime = `${dateString}T00:00:00`
+        date = new Date(dateWithTime)
+        
+        // Usar métodos UTC para evitar problemas de zona horaria
+        if (isValid(date)) {
+          return `${String(date.getUTCDate()).padStart(2, '0')}/${String(date.getUTCMonth() + 1).padStart(2, '0')}/${date.getUTCFullYear()}`
+        }
       } else {
         // Try to parse ISO format
         date = parseISO(dateString)
@@ -188,7 +197,7 @@ export default function HistoricalRecords() {
 
       return format(date, "dd/MM/yyyy", { locale: es })
     } catch (e) {
-      console.warn("Error formatting date:", e)
+      console.warn("Error formatting date:", e, dateString)
       return dateString
     }
   }
@@ -208,19 +217,28 @@ export default function HistoricalRecords() {
       if (dateString.includes("/")) {
         const parts = dateString.split("/")
         if (parts.length === 3) {
+          // Para formato DD/MM/YYYY
           date = new Date(Number.parseInt(parts[2]), Number.parseInt(parts[1]) - 1, Number.parseInt(parts[0]))
         }
       } else {
-        date = parseISO(dateString)
+        // Para formato YYYY-MM-DD, añadir T00:00:00 para evitar problemas de zona horaria
+        if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          // Añadir T00:00:00 para forzar UTC y evitar el desplazamiento de día
+          const dateWithTime = `${dateString}T00:00:00`
+          date = new Date(dateWithTime)
+        } else {
+          date = parseISO(dateString)
+        }
       }
 
       if (!date || !isValid(date)) {
+        // Último intento con constructor estándar
         date = new Date(dateString)
       }
 
       return isValid(date) ? date : null
     } catch (e) {
-      console.warn("Error parsing date:", e)
+      console.warn("Error parsing date:", e, dateString)
       return null
     }
   }
@@ -685,8 +703,48 @@ export default function HistoricalRecords() {
         if (visibleColumns.telefono) data["Teléfono"] = record.telefono
         if (visibleColumns.novedad) data["Novedad"] = record.novedad
         if (visibleColumns.hora) data["Hora"] = record.hora
-        if (visibleColumns.fecha_inicio) data["Fecha Inicio"] = formatDate(record.fecha_inicio)
-        if (visibleColumns.fecha_fin) data["Fecha Fin"] = formatDate(record.fecha_fin)
+        
+        // Formatear fechas correctamente para evitar problemas de zona horaria
+        if (visibleColumns.fecha_inicio) {
+          try {
+            if (record.fecha_inicio && record.fecha_inicio.match(/^\d{4}-\d{2}-\d{2}$/)) {
+              // Para formato YYYY-MM-DD, añadir T00:00:00 para evitar problemas de zona horaria
+              const dateWithTime = `${record.fecha_inicio}T00:00:00`;
+              const date = new Date(dateWithTime);
+              if (isValid(date)) {
+                data["Fecha Inicio"] = `${String(date.getUTCDate()).padStart(2, '0')}/${String(date.getUTCMonth() + 1).padStart(2, '0')}/${date.getUTCFullYear()}`;
+              } else {
+                data["Fecha Inicio"] = formatDate(record.fecha_inicio);
+              }
+            } else {
+              data["Fecha Inicio"] = formatDate(record.fecha_inicio);
+            }
+          } catch (error) {
+            console.error("Error al formatear fecha inicio:", error, record.fecha_inicio);
+            data["Fecha Inicio"] = formatDate(record.fecha_inicio);
+          }
+        }
+        
+        if (visibleColumns.fecha_fin) {
+          try {
+            if (record.fecha_fin && record.fecha_fin.match(/^\d{4}-\d{2}-\d{2}$/)) {
+              // Para formato YYYY-MM-DD, añadir T00:00:00 para evitar problemas de zona horaria
+              const dateWithTime = `${record.fecha_fin}T00:00:00`;
+              const date = new Date(dateWithTime);
+              if (isValid(date)) {
+                data["Fecha Fin"] = `${String(date.getUTCDate()).padStart(2, '0')}/${String(date.getUTCMonth() + 1).padStart(2, '0')}/${date.getUTCFullYear()}`;
+              } else {
+                data["Fecha Fin"] = formatDate(record.fecha_fin);
+              }
+            } else {
+              data["Fecha Fin"] = formatDate(record.fecha_fin);
+            }
+          } catch (error) {
+            console.error("Error al formatear fecha fin:", error, record.fecha_fin);
+            data["Fecha Fin"] = formatDate(record.fecha_fin);
+          }
+        }
+        
         if (visibleColumns.description) data["Descripción"] = record.description
         if (visibleColumns.respuesta) data["Respuesta"] = record.respuesta
         data["Tipo"] = record.tipo
@@ -820,8 +878,45 @@ export default function HistoricalRecords() {
 
       // Create formatted data for the permisos worksheet
       const permisosData = permisosRecords.map((record) => {
-        const startDate = formatDate(record.fecha_inicio)
-        const endDate = formatDate(record.fecha_fin)
+        // Formatear fechas correctamente para evitar problemas de zona horaria
+        let startDate = "";
+        let endDate = "";
+        
+        try {
+          if (record.fecha_inicio) {
+            if (record.fecha_inicio.match(/^\d{4}-\d{2}-\d{2}$/)) {
+              // Para formato YYYY-MM-DD, añadir T00:00:00 para evitar problemas de zona horaria
+              const dateWithTime = `${record.fecha_inicio}T00:00:00`;
+              const date = new Date(dateWithTime);
+              if (isValid(date)) {
+                startDate = `${String(date.getUTCDate()).padStart(2, '0')}/${String(date.getUTCMonth() + 1).padStart(2, '0')}/${date.getUTCFullYear()}`;
+              } else {
+                startDate = formatDate(record.fecha_inicio);
+              }
+            } else {
+              startDate = formatDate(record.fecha_inicio);
+            }
+          }
+          
+          if (record.fecha_fin) {
+            if (record.fecha_fin.match(/^\d{4}-\d{2}-\d{2}$/)) {
+              // Para formato YYYY-MM-DD, añadir T00:00:00 para evitar problemas de zona horaria
+              const dateWithTime = `${record.fecha_fin}T00:00:00`;
+              const date = new Date(dateWithTime);
+              if (isValid(date)) {
+                endDate = `${String(date.getUTCDate()).padStart(2, '0')}/${String(date.getUTCMonth() + 1).padStart(2, '0')}/${date.getUTCFullYear()}`;
+              } else {
+                endDate = formatDate(record.fecha_fin);
+              }
+            } else {
+              endDate = formatDate(record.fecha_fin);
+            }
+          }
+        } catch (error) {
+          console.error("Error al formatear fechas:", error, record.fecha_inicio, record.fecha_fin);
+          startDate = formatDate(record.fecha_inicio);
+          endDate = formatDate(record.fecha_fin);
+        }
 
         return {
           Código: record.code,

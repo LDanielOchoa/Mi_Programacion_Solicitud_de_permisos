@@ -7,18 +7,25 @@ interface MobileMenuProps {
   pathname: string
   unreadCount: number
   setShowNotifications: (show: boolean) => void
-  userData: { code: string; name: string; phone: string } | null
+  userData: { code: string; name: string; phone: string; userType?: 'registered' | 'se_maintenance' } | null
   onClose: () => void
 }
 
 export default function MobileMenu({ pathname, unreadCount, setShowNotifications, userData, onClose }: MobileMenuProps) {
   const [activeCard, setActiveCard] = useState<string | null>(null)
 
-  const menuItems = [
+  const allMenuItems = [
     { href: '/solicitud-permisos', label: 'Solicitud de Permisos', icon: FileText },
-    { href: '/solicitud-equipo', label: 'Solicitud de Postulaciones', icon: Users },
     { href: '/solicitudes-global', label: 'Historial', icon: Clock },
   ]
+
+  // Filter menu items based on user type
+  const menuItems = allMenuItems.filter(item => {
+    if ((item as any).hideForMaintenance && userData?.userType === 'se_maintenance') {
+      return false
+    }
+    return true
+  })
 
   const NavLink = ({ href, label, icon: Icon }: { href: string; label: string; icon: React.ElementType }) => (
     <Link href={href} passHref>

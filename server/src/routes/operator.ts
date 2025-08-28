@@ -30,11 +30,18 @@ const getPhotoUrl = async (cedula: string): Promise<string> => {
   return `${baseUrl}${cedula}.jpg`;
 };
 
-const operator = new Hono<{
+type AppEnv = {
   Variables: {
-    currentUser: User
+    currentUser: User;
+    payload: { 
+      sub: string; 
+      iat: number;
+      exp: number;
+    };
   }
-}>();
+}
+
+const operator = new Hono<AppEnv>();
 
 // GET /operator/info - Obtener información del operador actual
 operator.get('/info', getCurrentUser, async (c) => {

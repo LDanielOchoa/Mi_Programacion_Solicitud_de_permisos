@@ -1,7 +1,7 @@
 const fetch = require('node-fetch');
 
 async function testServer() {
-  const baseUrl = 'https://solicitud-permisos.sao6.com.co';
+  const baseUrl = 'https://solicitud-permisos.sao6.com.co/api';
   
   console.log('🧪 Probando servidor...');
   

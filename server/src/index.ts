@@ -22,6 +22,8 @@ import equipment from './routes/equipment.js';
 import excel from './routes/excel.js';
 import users from './routes/users.js';
 import operator from './routes/operator.js';
+import statistics from './routes/statistics.js';
+import images from './routes/images.js';
 
 const app = new Hono();
 
@@ -40,6 +42,8 @@ app.route('/equipment', equipment);
 app.route('/excel', excel);
 app.route('/users', users);
 app.route('/operator', operator);
+app.route('/statistics', statistics);
+app.route('/images', images);
 
 // Ruta raíz
 app.get('/', (c) => c.text('Servidor Hono funcionando!'));
@@ -51,6 +55,23 @@ app.get('/test-db', async (c) => {
     return c.json({ message: 'Conexión a la base de datos exitosa' });
   } else {
     throw new HTTPException(500, { message: 'Error en la conexión a la base de datos' });
+  }
+});
+
+// Ruta de salud del servidor
+app.get('/health', async (c) => {
+  try {
+    const isConnected = await testConnection();
+    return c.json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      database: isConnected ? 'connected' : 'disconnected',
+      environment: process.env.NODE_ENV || 'development',
+      version: '1.0.0'
+    });
+  } catch (error) {
+    logger.error({ error }, 'Error en health check');
+    throw new HTTPException(500, { message: 'Servidor no saludable' });
   }
 });
 
@@ -81,7 +102,7 @@ app.onError((err, c) => {
 });
 
 // Iniciar servidor
-const port = parseInt(process.env.PORT || '3000', 10);
+const port = parseInt(process.env.PORT || '8001', 10);
 
 serve({
   fetch: app.fetch,

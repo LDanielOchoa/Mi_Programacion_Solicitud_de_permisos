@@ -53,16 +53,6 @@ const StatCard = React.memo(({ title, value, icon, trend, color = "emerald", des
             {icon}
           </div>
         </div>
-
-        {trend && (
-          <div className="flex items-center space-x-2 mt-3">
-            <div className="flex items-center space-x-1 px-2 py-1 bg-white/20 rounded-full backdrop-blur-sm">
-              <TrendingUp className="h-3 w-3" />
-              <span className="text-xs font-semibold">+{trend}%</span>
-            </div>
-            <span className="text-xs text-white/70">vs mes anterior</span>
-          </div>
-        )}
       </div>
 
       <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>

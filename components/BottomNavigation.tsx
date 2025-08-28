@@ -29,11 +29,6 @@ export default function BottomNavigation({ hasNewNotification = false, showProfi
       href: "/solicitud-permisos",
     },
     {
-      icon: Briefcase,
-      label: "Postulaciones",
-      href: "/solicitud-equipo",
-    },
-    {
       icon: List,
       label: "Solicitudes",
       href: "/solicitudes-global",

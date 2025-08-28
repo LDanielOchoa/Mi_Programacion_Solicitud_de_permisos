@@ -54,7 +54,7 @@ export type RequestStats = {
   }
 }
 
-export const usePermits = (activeTab: string) => {
+export const usePermits = (activeTab: string, userTypeFilter?: string | null) => {
   const [requests, setRequests] = useState<Request[]>([])
   const [groupedRequests, setGroupedRequests] = useState<GroupedRequests>({})
   const [filteredRequests, setFilteredRequests] = useState<GroupedRequests>({})
@@ -198,7 +198,17 @@ export const usePermits = (activeTab: string) => {
         postulations: { total: 0, pending: 0, rejected: 0, turnoPareja: 0, tablaPartida: 0, disponibleFijo: 0 },
       }
 
-      fetchedRequests.forEach((req: Request) => {
+      // Filter requests for statistics based on userTypeFilter
+      let requestsForStats = fetchedRequests
+      if (userTypeFilter === 'se_maintenance') {
+        // For se_maintenance users: show only se_maintenance requests
+        requestsForStats = fetchedRequests.filter(req => (req as any).userType === 'se_maintenance')
+      } else if (userTypeFilter === 'exclude_se_maintenance') {
+        // For non-se_maintenance users: show all requests EXCEPT se_maintenance
+        requestsForStats = fetchedRequests.filter(req => (req as any).userType !== 'se_maintenance')
+      }
+
+      requestsForStats.forEach((req: Request) => {
         stats.total++
         if (req.status === "approved") stats.approved++
         else if (req.status === "pending") stats.pending++
@@ -231,7 +241,10 @@ export const usePermits = (activeTab: string) => {
       // Filter requests based on active tab and status
       const filteredData = fetchedRequests.filter((req: Request) => {
         const isPermit = ["descanso", "cita", "audiencia", "licencia", "diaAM", "diaPM"].includes(req.type)
-        return (activeTab === "permits" ? isPermit : !isPermit) && req.status === "pending"
+        // Las solicitudes de se_maintenance siempre van a Permisos
+        const isMaintenanceRequest = (req as any).userType === 'se_maintenance'
+        const shouldShowInPermits = isPermit || isMaintenanceRequest
+        return (activeTab === "permits" ? shouldShowInPermits : !shouldShowInPermits) && req.status === "pending"
       })
 
       // Group by name instead of code
@@ -247,7 +260,7 @@ export const usePermits = (activeTab: string) => {
     } finally {
       setIsLoading(false)
     }
-  }, [activeTab])
+  }, [activeTab, userTypeFilter])
 
   const handleRequestAction = useCallback(
     async (id: string, action: "approve" | "reject", reason: string) => {
@@ -292,7 +305,7 @@ export const usePermits = (activeTab: string) => {
   )
 
   const applyFilters = useCallback(
-    (filterType: string, filterCode: string, selectedZone: string, weekFilter: string | null, sortOrder: string) => {
+    (filterType: string, filterCode: string, selectedZone: string, weekFilter: string | null, sortOrder: string, userTypeFilter?: string | null) => {
       let filtered = { ...groupedRequests }
 
       if (filterType !== "all") {
@@ -341,6 +354,35 @@ export const usePermits = (activeTab: string) => {
           }
           return acc
         }, {} as GroupedRequests)
+      }
+
+      // Filter by userType if specified
+      if (userTypeFilter) {
+        console.log('Applying userType filter:', userTypeFilter)
+        console.log('Requests before filtering:', Object.keys(filtered).length)
+        
+        filtered = Object.entries(filtered).reduce((acc, [name, reqs]) => {
+          const filteredReqs = reqs.filter((req) => {
+            console.log('Checking request:', req.id, 'userType:', (req as any).userType)
+            
+            if (userTypeFilter === 'se_maintenance') {
+              // For se_maintenance users: show only se_maintenance requests
+              return (req as any).userType === 'se_maintenance'
+            } else if (userTypeFilter === 'exclude_se_maintenance') {
+              // For non-se_maintenance users: show all requests EXCEPT se_maintenance
+              return (req as any).userType !== 'se_maintenance'
+            }
+            
+            // Default case: show all requests
+            return true
+          })
+          if (filteredReqs.length > 0) {
+            acc[name] = filteredReqs
+          }
+          return acc
+        }, {} as GroupedRequests)
+        
+        console.log('Requests after filtering:', Object.keys(filtered).length)
       }
 
       Object.keys(filtered).forEach((name) => {

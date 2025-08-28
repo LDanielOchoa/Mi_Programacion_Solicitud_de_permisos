@@ -8,7 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
 import jwt from "jsonwebtoken"
-import { Eye, EyeOff, User, CheckCircle, ArrowRight, AlertCircle, Info, CreditCard, LogIn, Settings, FileText, Shield, Users, X } from "lucide-react"
+import { Eye, EyeOff, User, CheckCircle, ArrowRight, AlertCircle, Info, CreditCard, LogIn, Settings, FileText, Shield, Users, X, Leaf } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -26,52 +26,69 @@ const containerVariants = {
     opacity: 1,
     transition: {
       when: "beforeChildren",
-      staggerChildren: 0.08,
-      duration: 0.4,
+      staggerChildren: 0.12,
+      duration: 0.6,
+      ease: [0.25, 0.46, 0.45, 0.94]
     },
   },
 }
 
 const itemVariants = {
-  hidden: { y: 15, opacity: 0 },
+  hidden: { y: 20, opacity: 0 },
   visible: {
     y: 0,
     opacity: 1,
-    transition: { duration: 0.3, ease: "easeOut" },
+    transition: { 
+      duration: 0.5, 
+      ease: [0.25, 0.46, 0.45, 0.94]
+    },
   },
 }
 
 const formVariants = {
-  hidden: { x: 30, opacity: 0 },
+  hidden: { x: 40, opacity: 0 },
   visible: {
     x: 0,
     opacity: 1,
-    transition: { type: "spring", stiffness: 400, damping: 25 },
+    transition: { 
+      type: "spring", 
+      stiffness: 300, 
+      damping: 30,
+      duration: 0.6
+    },
   },
   exit: {
-    x: -30,
+    x: -40,
     opacity: 0,
-    transition: { duration: 0.2 },
+    transition: { duration: 0.3 },
   },
 }
 
 const modalVariants = {
-  hidden: { opacity: 0 },
+  hidden: { 
+    opacity: 0,
+    backdropFilter: "blur(0px)"
+  },
   visible: {
     opacity: 1,
-    transition: { duration: 0.3 }
+    backdropFilter: "blur(12px)",
+    transition: { 
+      duration: 0.4,
+      ease: [0.25, 0.46, 0.45, 0.94]
+    }
   },
   exit: {
     opacity: 0,
-    transition: { duration: 0.2 }
+    backdropFilter: "blur(0px)",
+    transition: { duration: 0.3 }
   }
 }
 
 const modalContentVariants = {
   hidden: { 
-    scale: 0.8, 
+    scale: 0.85, 
     opacity: 0,
-    y: 50
+    y: 60
   },
   visible: {
     scale: 1,
@@ -81,32 +98,39 @@ const modalContentVariants = {
       type: "spring",
       stiffness: 300,
       damping: 25,
-      staggerChildren: 0.1
+      staggerChildren: 0.1,
+      delayChildren: 0.1
     }
   },
   exit: {
-    scale: 0.8,
+    scale: 0.9,
     opacity: 0,
-    y: 50,
-    transition: { duration: 0.2 }
+    y: 30,
+    transition: { duration: 0.25 }
   }
 }
 
 const optionCardVariants = {
-  hidden: { y: 30, opacity: 0 },
+  hidden: { y: 40, opacity: 0 },
   visible: {
     y: 0,
     opacity: 1,
-    transition: { duration: 0.4, ease: "easeOut" },
+    transition: { 
+      duration: 0.5, 
+      ease: [0.25, 0.46, 0.45, 0.94]
+    },
   },
   hover: {
-    y: -8,
-    scale: 1.02,
-    transition: { duration: 0.2, ease: "easeOut" },
+    y: -12,
+    scale: 1.03,
+    transition: { 
+      duration: 0.3, 
+      ease: [0.25, 0.46, 0.45, 0.94]
+    },
   },
   tap: {
-    scale: 0.98,
-    transition: { duration: 0.1 },
+    scale: 0.97,
+    transition: { duration: 0.15 },
   },
 }
 
@@ -116,25 +140,28 @@ const LoadingOverlay = React.memo(() => (
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
     exit={{ opacity: 0 }}
-    className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50"
+    className="fixed inset-0 bg-green-950/20 backdrop-blur-md flex items-center justify-center z-50"
     style={{ willChange: "opacity" }}
   >
     <motion.div
-      initial={{ scale: 0.9 }}
-      animate={{ scale: 1 }}
-      className="bg-white/90 backdrop-blur-md rounded-xl p-8 shadow-xl"
+      initial={{ scale: 0.9, y: 20 }}
+      animate={{ scale: 1, y: 0 }}
+      className="bg-white/95 backdrop-blur-xl rounded-2xl p-10 shadow-2xl border border-green-100/50"
       style={{ willChange: "transform" }}
     >
-      <div className="flex flex-col items-center gap-3">
-        <div className="relative w-10 h-10">
+      <div className="flex flex-col items-center gap-6">
+        <div className="relative w-16 h-16">
           <motion.div
             animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-            className="w-10 h-10 border-3 border-green-200 border-t-green-600 rounded-full"
+            transition={{ duration: 1.2, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+            className="w-16 h-16 border-4 border-green-100 border-t-green-600 rounded-full"
             style={{ willChange: "transform" }}
           />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Leaf className="h-6 w-6 text-green-600" />
+          </div>
         </div>
-        <p className="text-gray-700 font-medium text-sm">Procesando...</p>
+        <p className="text-green-800 font-semibold text-lg tracking-wide">Procesando...</p>
       </div>
     </motion.div>
   </motion.div>
@@ -150,26 +177,34 @@ const ErrorModal = React.memo(({ isOpen, onClose }: { isOpen: boolean; onClose: 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        className="fixed inset-0 bg-green-950/30 backdrop-blur-md flex items-center justify-center z-50 p-4"
         style={{ willChange: "opacity" }}
       >
         <motion.div
-          initial={{ y: 30, opacity: 0, scale: 0.95 }}
+          initial={{ y: 40, opacity: 0, scale: 0.9 }}
           animate={{ y: 0, opacity: 1, scale: 1 }}
-          exit={{ y: 30, opacity: 0, scale: 0.95 }}
-          transition={{ type: "spring", damping: 20 }}
-          className="bg-white rounded-xl p-6 shadow-2xl max-w-sm w-full"
+          exit={{ y: 40, opacity: 0, scale: 0.9 }}
+          transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          className="bg-white rounded-2xl p-8 shadow-2xl max-w-md w-full border border-green-100/50"
           style={{ willChange: "transform" }}
         >
           <div className="text-center">
-            <div className="w-14 h-14 bg-red-100 rounded-full mx-auto flex items-center justify-center mb-4">
-              <AlertCircle className="h-7 w-7 text-red-600" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Demasiados intentos</h3>
-            <p className="text-gray-600 text-sm mb-6">
+            <motion.div 
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.1, type: "spring", stiffness: 300 }}
+              className="w-20 h-20 bg-gradient-to-br from-red-50 to-red-100 rounded-full mx-auto flex items-center justify-center mb-6 shadow-lg"
+            >
+              <AlertCircle className="h-10 w-10 text-red-600" />
+            </motion.div>
+            <h3 className="text-2xl font-bold text-green-800 mb-3 tracking-tight">Demasiados intentos</h3>
+            <p className="text-green-600 text-base mb-8 leading-relaxed">
               Has excedido el número de intentos permitidos. Intenta nuevamente más tarde.
             </p>
-            <Button onClick={onClose} className="bg-emerald-500 hover:bg-emerald-600 w-full">
+            <Button 
+              onClick={onClose} 
+              className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 w-full h-12 text-base font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+            >
               Entendido
             </Button>
           </div>
@@ -201,93 +236,124 @@ const AdminOptionsModal = React.memo(({ isOpen, onClose }: { isOpen: boolean; on
           initial="hidden"
           animate="visible"
           exit="exit"
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-          style={{ willChange: "opacity" }}
+          className="fixed inset-0 bg-green-950/30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          style={{ willChange: "opacity, backdrop-filter" }}
         >
           <motion.div
             variants={modalContentVariants}
-            className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto relative"
+            className="bg-white rounded-3xl shadow-[0_25px_50px_rgba(0,0,0,0.15)] max-w-3xl w-full max-h-[90vh] overflow-y-auto relative border border-green-100/50"
             style={{ willChange: "transform" }}
           >
             {/* Close button */}
             <motion.button
               onClick={onClose}
-              className="absolute top-4 right-4 w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors z-10"
+              className="absolute top-6 right-6 w-10 h-10 bg-white hover:bg-green-50 rounded-full flex items-center justify-center transition-all duration-200 shadow-md hover:shadow-lg border border-green-100 z-10 group"
               whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
+              whileTap={{ scale: 0.95 }}
             >
-              <X className="h-4 w-4 text-gray-600" />
+              <X className="h-5 w-5 text-green-600 group-hover:text-green-700 transition-colors" />
             </motion.button>
 
-            <div className="p-8">
+            <div className="p-12">
               {/* Header */}
-              <motion.div variants={itemVariants} className="text-center mb-8">
+              <motion.div variants={itemVariants} className="text-center mb-12">
                 <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 25, delay: 0.1 }}
-                  className="w-20 h-20 bg-gradient-to-br from-green-100 to-green-200 rounded-full mx-auto mb-6 flex items-center justify-center"
+                  initial={{ scale: 0, rotate: -10 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ 
+                    type: "spring", 
+                    stiffness: 300, 
+                    damping: 20, 
+                    delay: 0.1 
+                  }}
+                  className="w-24 h-24 bg-gradient-to-br from-green-500 via-green-600 to-green-700 rounded-full mx-auto mb-8 flex items-center justify-center shadow-lg relative overflow-hidden"
                 >
-                  <Shield className="h-10 w-10 text-green-600" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent rounded-full" />
+                  <Shield className="h-12 w-12 text-white drop-shadow-sm" />
                 </motion.div>
-                <h2 className="text-3xl font-bold text-green-700 mb-3">
+                
+                <motion.h2 
+                  className="text-4xl font-bold text-green-800 mb-4 tracking-tight"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
                   ¡Bienvenido Administrador!
-                </h2>
-                <p className="text-green-600 text-lg">
-                  Selecciona una opción para continuar
-                </p>
+                </motion.h2>
+                
+                <motion.p 
+                  className="text-green-600 text-xl font-medium"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  Selecciona una opción para continuar con la gestión
+                </motion.p>
               </motion.div>
 
               {/* Options */}
-              <motion.div variants={itemVariants} className="grid gap-6">
+              <motion.div variants={itemVariants} className="space-y-6">
                 <motion.div
                   variants={optionCardVariants}
                   whileHover="hover"
                   whileTap="tap"
-                  className="cursor-pointer"
+                  className="cursor-pointer group"
                   onClick={handleAdminDashboard}
                 >
-                  <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden relative">
-                    <CardContent className="p-8">
-                      <div className="flex items-center space-x-6">
+                  <Card className="bg-gradient-to-br from-green-50 via-white to-green-50/50 border-green-200/60 shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden relative">
+                    <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    
+                    <CardContent className="p-10">
+                      <div className="flex items-center space-x-8">
                         <motion.div
-                          className="w-16 h-16 bg-gradient-to-br from-green-600 to-green-700 rounded-2xl flex items-center justify-center"
-                          whileHover={{ rotate: 5 }}
+                          className="w-20 h-20 bg-gradient-to-br from-green-600 via-green-700 to-green-800 rounded-2xl flex items-center justify-center shadow-lg relative overflow-hidden"
+                          whileHover={{ rotate: 3, scale: 1.05 }}
                           transition={{ duration: 0.2 }}
                         >
-                          <Settings className="h-8 w-8 text-white" />
+                          <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
+                          <Settings className="h-10 w-10 text-white drop-shadow" />
                         </motion.div>
-                        <div className="flex-1">
-                          <h3 className="font-bold text-green-800 text-xl mb-2">
+                        
+                        <div className="flex-1 space-y-4">
+                          <h3 className="font-bold text-green-800 text-2xl tracking-tight">
                             Panel de Administración
                           </h3>
-                          <p className="text-green-600 text-base mb-4">
-                            Gestiona usuarios, permisos y configuración del sistema
+                          <p className="text-green-600 text-lg leading-relaxed">
+                            Gestiona usuarios, permisos y configuración completa del sistema
                           </p>
-                          <div className="flex items-center space-x-4 text-sm text-green-600">
-                            <div className="flex items-center space-x-2">
-                              <Users className="h-4 w-4" />
-                              <span>Gestión de usuarios</span>
+                          
+                          <div className="flex items-center space-x-6 pt-2">
+                            <div className="flex items-center space-x-3 text-green-600">
+                              <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                                <Users className="h-3 w-3 text-green-600" />
+                              </div>
+                              <span className="text-sm font-medium">Gestión de usuarios</span>
                             </div>
-                            <div className="flex items-center space-x-2">
-                              <CheckCircle className="h-4 w-4" />
-                              <span>Aprobación de solicitudes</span>
+                            <div className="flex items-center space-x-3 text-green-600">
+                              <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                                <CheckCircle className="h-3 w-3 text-green-600" />
+                              </div>
+                              <span className="text-sm font-medium">Aprobación de solicitudes</span>
                             </div>
                           </div>
                         </div>
+                        
                         <motion.div
-                          className="text-green-600"
-                          whileHover={{ x: 5 }}
+                          className="text-green-600 group-hover:text-green-700 transition-colors"
+                          whileHover={{ x: 8 }}
                           transition={{ duration: 0.2 }}
                         >
-                          <ArrowRight className="h-6 w-6" />
+                          <div className="w-12 h-12 bg-green-100 group-hover:bg-green-200 rounded-full flex items-center justify-center transition-colors duration-200">
+                            <ArrowRight className="h-6 w-6" />
+                          </div>
                         </motion.div>
                       </div>
                     </CardContent>
                     
                     {/* Decorative elements */}
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-green-200 rounded-full opacity-20 -translate-y-12 translate-x-12" />
-                    <div className="absolute bottom-0 left-0 w-20 h-20 bg-green-300 rounded-full opacity-20 translate-y-10 -translate-x-10" />
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-green-200/30 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500" />
+                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-green-300/20 rounded-full translate-y-12 -translate-x-12 group-hover:scale-110 transition-transform duration-500" />
+                    <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-green-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   </Card>
                 </motion.div>
 
@@ -295,60 +361,85 @@ const AdminOptionsModal = React.memo(({ isOpen, onClose }: { isOpen: boolean; on
                   variants={optionCardVariants}
                   whileHover="hover"
                   whileTap="tap"
-                  className="cursor-pointer"
+                  className="cursor-pointer group"
                   onClick={handleRequestPermission}
                 >
-                  <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden relative">
-                    <CardContent className="p-8">
-                      <div className="flex items-center space-x-6">
+                  <Card className="bg-gradient-to-br from-green-50/50 via-white to-green-50 border-green-200/60 shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden relative">
+                    <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    
+                    <CardContent className="p-10">
+                      <div className="flex items-center space-x-8">
                         <motion.div
-                          className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center"
-                          whileHover={{ rotate: 5 }}
+                          className="w-20 h-20 bg-gradient-to-br from-green-500 via-green-600 to-green-700 rounded-2xl flex items-center justify-center shadow-lg relative overflow-hidden"
+                          whileHover={{ rotate: -3, scale: 1.05 }}
                           transition={{ duration: 0.2 }}
                         >
-                          <FileText className="h-8 w-8 text-white" />
+                          <div className="absolute inset-0 bg-gradient-to-br from-white/25 to-transparent" />
+                          <FileText className="h-10 w-10 text-white drop-shadow" />
                         </motion.div>
-                        <div className="flex-1">
-                          <h3 className="font-bold text-blue-800 text-xl mb-2">
+                        
+                        <div className="flex-1 space-y-4">
+                          <h3 className="font-bold text-green-800 text-2xl tracking-tight">
                             Solicitar Permiso
                           </h3>
-                          <p className="text-blue-600 text-base mb-4">
-                            Crea y gestiona solicitudes de permisos y vacaciones
+                          <p className="text-green-600 text-lg leading-relaxed">
+                            Crea y gestiona solicitudes de permisos y vacaciones de manera eficiente
                           </p>
-                          <div className="flex items-center space-x-4 text-sm text-blue-600">
-                            <div className="flex items-center space-x-2">
-                              <FileText className="h-4 w-4" />
-                              <span>Solicitudes rápidas</span>
+                          
+                          <div className="flex items-center space-x-6 pt-2">
+                            <div className="flex items-center space-x-3 text-green-600">
+                              <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                                <FileText className="h-3 w-3 text-green-600" />
+                              </div>
+                              <span className="text-sm font-medium">Solicitudes rápidas</span>
                             </div>
-                            <div className="flex items-center space-x-2">
-                              <CheckCircle className="h-4 w-4" />
-                              <span>Seguimiento en tiempo real</span>
+                            <div className="flex items-center space-x-3 text-green-600">
+                              <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                                <CheckCircle className="h-3 w-3 text-green-600" />
+                              </div>
+                              <span className="text-sm font-medium">Seguimiento en tiempo real</span>
                             </div>
                           </div>
                         </div>
+                        
                         <motion.div
-                          className="text-blue-600"
-                          whileHover={{ x: 5 }}
+                          className="text-green-600 group-hover:text-green-700 transition-colors"
+                          whileHover={{ x: 8 }}
                           transition={{ duration: 0.2 }}
                         >
-                          <ArrowRight className="h-6 w-6" />
+                          <div className="w-12 h-12 bg-green-100 group-hover:bg-green-200 rounded-full flex items-center justify-center transition-colors duration-200">
+                            <ArrowRight className="h-6 w-6" />
+                          </div>
                         </motion.div>
                       </div>
                     </CardContent>
                     
                     {/* Decorative elements */}
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-blue-200 rounded-full opacity-20 -translate-y-12 translate-x-12" />
-                    <div className="absolute bottom-0 left-0 w-20 h-20 bg-blue-300 rounded-full opacity-20 translate-y-10 -translate-x-10" />
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-green-200/30 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-500" />
+                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-green-300/20 rounded-full translate-y-12 -translate-x-12 group-hover:scale-110 transition-transform duration-500" />
+                    <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-green-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   </Card>
                 </motion.div>
               </motion.div>
 
               {/* Footer */}
-              <motion.div variants={itemVariants} className="mt-8 text-center">
-                <p className="text-gray-500 text-sm">
+              <motion.div 
+                variants={itemVariants} 
+                className="mt-12 text-center relative"
+              >
+                <div className="h-px bg-gradient-to-r from-transparent via-green-200 to-transparent mb-6" />
+                <p className="text-green-500 text-base font-medium tracking-wide">
                   Selecciona la opción que mejor se adapte a tus necesidades
                 </p>
               </motion.div>
+            </div>
+
+            {/* Background pattern */}
+            <div className="absolute inset-0 opacity-5 pointer-events-none">
+              <div className="absolute top-20 left-10 w-2 h-2 bg-green-400 rounded-full" />
+              <div className="absolute top-32 right-20 w-1 h-1 bg-green-500 rounded-full" />
+              <div className="absolute bottom-40 left-16 w-1.5 h-1.5 bg-green-400 rounded-full" />
+              <div className="absolute bottom-20 right-12 w-2 h-2 bg-green-500 rounded-full" />
             </div>
           </motion.div>
         </motion.div>
@@ -474,6 +565,8 @@ export default function LoginPage(): ReactElement {
             if (userResponse.ok) {
               const userData = await userResponse.json()
               localStorage.setItem("userName", userData.name || "Administrador")
+              // Guardar todos los datos del usuario incluyendo userType
+              localStorage.setItem("userData", JSON.stringify(userData))
             }
           } catch (error) {
             console.warn("No se pudo obtener el nombre del usuario:", error)
@@ -521,6 +614,13 @@ export default function LoginPage(): ReactElement {
       return
     }
 
+    // Permitir código vacío para validación con cédula
+    if (code.trim() === "") {
+      setError("")
+      setFormStep(1)
+      return
+    }
+
     if (!validateCode(code)) {
       setError("El código debe tener 4 dígitos. Use ceros a la izquierda si es necesario (ej: 0025).")
       setShake(true)
@@ -543,7 +643,8 @@ export default function LoginPage(): ReactElement {
       setIsLoading(true)
       setError("")
 
-      if (!validateCode(code)) {
+      // Solo validar código si no está vacío
+      if (code.trim() !== "" && !validateCode(code)) {
         setError("El código debe tener 4 dígitos. Use ceros a la izquierda si es necesario.")
         setIsLoading(false)
         setShake(true)
@@ -584,6 +685,8 @@ export default function LoginPage(): ReactElement {
             if (userResponse.ok) {
               const userData = await userResponse.json()
               localStorage.setItem("userName", userData.name || "Administrador")
+              // Guardar todos los datos del usuario incluyendo userType
+              localStorage.setItem("userData", JSON.stringify(userData))
             }
           } catch (error) {
             console.warn("No se pudo obtener el nombre del usuario:", error)
@@ -646,49 +749,49 @@ export default function LoginPage(): ReactElement {
   // Memoized background elements
   const backgroundElements = useMemo(
     () => (
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
           animate={{
-            scale: [1, 1.05, 1],
-            x: [0, 20, 0],
-            y: [0, -30, 0],
+            scale: [1, 1.1, 1],
+            x: [0, 30, 0],
+            y: [0, -40, 0],
           }}
           transition={{
             repeat: Number.POSITIVE_INFINITY,
-            duration: 12,
+            duration: 20,
             ease: "easeInOut",
           }}
-          className="absolute top-10 left-10 w-48 h-48 md:w-64 md:h-64 bg-green-200 rounded-full mix-blend-multiply filter blur-3xl opacity-60"
+          className="absolute -top-20 -left-20 w-80 h-80 bg-gradient-to-br from-green-200/40 to-green-300/30 rounded-full mix-blend-multiply filter blur-3xl"
           style={{ willChange: "transform" }}
         />
         <motion.div
           animate={{
-            scale: [1, 0.95, 1],
-            x: [0, -20, 0],
+            scale: [1, 0.9, 1],
+            x: [0, -40, 0],
+            y: [0, 30, 0],
+          }}
+          transition={{
+            repeat: Number.POSITIVE_INFINITY,
+            duration: 25,
+            ease: "easeInOut",
+            delay: 2,
+          }}
+          className="absolute -top-10 -right-20 w-96 h-96 bg-gradient-to-bl from-green-300/30 to-green-400/20 rounded-full mix-blend-multiply filter blur-3xl"
+          style={{ willChange: "transform" }}
+        />
+        <motion.div
+          animate={{
+            scale: [1, 1.2, 1],
+            x: [0, 20, 0],
             y: [0, 20, 0],
           }}
           transition={{
             repeat: Number.POSITIVE_INFINITY,
-            duration: 15,
+            duration: 30,
             ease: "easeInOut",
-            delay: 1,
+            delay: 4,
           }}
-          className="absolute top-0 right-10 w-56 h-56 md:w-72 md:h-72 bg-green-300 rounded-full mix-blend-multiply filter blur-3xl opacity-60"
-          style={{ willChange: "transform" }}
-        />
-        <motion.div
-          animate={{
-            scale: [1, 1.1, 1],
-            x: [0, 15, 0],
-            y: [0, 15, 0],
-          }}
-          transition={{
-            repeat: Number.POSITIVE_INFINITY,
-            duration: 18,
-            ease: "easeInOut",
-            delay: 2,
-          }}
-          className="absolute -bottom-8 left-20 w-56 h-56 md:w-72 md:h-72 bg-green-200 rounded-full mix-blend-multiply filter blur-3xl opacity-60"
+          className="absolute -bottom-20 left-1/4 w-72 h-72 bg-gradient-to-tr from-green-200/30 to-green-300/20 rounded-full mix-blend-multiply filter blur-3xl"
           style={{ willChange: "transform" }}
         />
       </div>
@@ -697,50 +800,58 @@ export default function LoginPage(): ReactElement {
   )
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center p-3 md:p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-green-100 flex items-center justify-center p-4 relative overflow-hidden">
       {backgroundElements}
 
       <motion.div
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ type: "spring", stiffness: 300, damping: 25 }}
-        className={`w-full max-w-5xl bg-white/85 backdrop-blur-md rounded-2xl shadow-2xl overflow-hidden flex flex-col lg:flex-row relative z-10 ${shake ? "animate-shake" : ""}`}
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ 
+          type: "spring", 
+          stiffness: 300, 
+          damping: 30,
+          duration: 0.8
+        }}
+        className={`w-full max-w-6xl bg-white/90 backdrop-blur-xl rounded-3xl shadow-[0_25px_50px_rgba(0,0,0,0.1)] overflow-hidden flex flex-col lg:flex-row relative z-10 border border-green-100/50 ${shake ? "animate-shake" : ""}`}
         style={{ willChange: "transform" }}
       >
         {/* Left side - Login Form */}
-        <div className="w-full lg:w-1/2 p-6 md:p-8 lg:p-12">
-          <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-6">
-            <motion.div variants={itemVariants} className="flex justify-center mb-4 md:mb-6">
+        <div className="w-full lg:w-1/2 p-8 lg:p-16">
+          <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8">
+            <motion.div variants={itemVariants} className="flex justify-center mb-8">
               <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ scale: 1.05, rotate: 2 }}
+                whileTap={{ scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                className="relative w-24 h-24 md:w-32 md:h-32 flex items-center justify-center"
+                className="relative w-32 h-32 flex items-center justify-center bg-gradient-to-br from-green-50 to-green-100 rounded-2xl shadow-lg"
               >
                 <Image src="/sao6.png" alt="Logo SAO6" width={120} height={120} className="object-contain" />
+                <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent rounded-2xl" />
               </motion.div>
             </motion.div>
 
-            <motion.h2 variants={itemVariants} className="text-2xl md:text-3xl font-bold text-green-700 text-center">
-              Sistema SAO6
-            </motion.h2>
-
-            <motion.p variants={itemVariants} className="text-green-600 text-center text-sm md:text-base">
-              Inicia sesión en tu cuenta
-            </motion.p>
+            <motion.div variants={itemVariants} className="text-center space-y-4">
+              <h1 className="text-4xl lg:text-5xl font-bold text-green-800 tracking-tight">
+                SAO6
+              </h1>
+              <p className="text-green-600 text-lg font-medium">
+                Sistema de Gestión Integrado
+              </p>
+              <div className="w-16 h-1 bg-gradient-to-r from-green-400 to-green-600 rounded-full mx-auto" />
+            </motion.div>
 
             {tokenProcessing ? (
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center justify-center space-x-2 text-green-700"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-gradient-to-r from-green-50 to-green-100 border border-green-200 rounded-2xl p-6 flex items-center justify-center space-x-4 text-green-700"
               >
                 {tokenVerified ? (
-                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <CheckCircle className="h-6 w-6 text-green-600" />
                 ) : (
-                  <div className="animate-spin h-5 w-5 border-2 border-green-600 border-t-transparent rounded-full" />
+                  <div className="animate-spin h-6 w-6 border-2 border-green-600 border-t-transparent rounded-full" />
                 )}
-                <span className="text-sm md:text-base">{tokenMessage}</span>
+                <span className="text-lg font-medium">{tokenMessage}</span>
               </motion.div>
             ) : (
               <AnimatePresence mode="wait">
@@ -751,33 +862,34 @@ export default function LoginPage(): ReactElement {
                     initial="hidden"
                     animate="visible"
                     exit="exit"
-                    className="space-y-5"
+                    className="space-y-6"
                     onSubmit={handleSubmit}
                   >
-                    <div className="relative">
+                    <div className="space-y-3">
                       <Label
                         htmlFor="code"
-                        className="text-green-700 flex items-center gap-2 text-sm md:text-base font-medium"
+                        className="text-green-800 flex items-center gap-3 text-lg font-semibold"
                       >
                         Código de acceso
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <span className="cursor-help">
-                                <Info className="h-4 w-4 text-green-600 opacity-70" />
+                                <Info className="h-5 w-5 text-green-600 opacity-70 hover:opacity-100 transition-opacity" />
                               </span>
                             </TooltipTrigger>
-                            <TooltipContent side="right" sideOffset={10}>
-                              <p className="w-[200px] text-xs">
-                                Ingrese su código de operador de 4 dígitos. Use ceros a la izquierda si es necesario.
+                            <TooltipContent side="right" sideOffset={10} className="max-w-xs">
+                              <p className="text-sm leading-relaxed">
+                                Ingrese su código de operador de 4 dígitos. Use ceros a la izquierda si es necesario. 
+                                <strong className="block mt-1">Déjelo en blanco si es personal de mantenimiento y usará su cédula.</strong>
                               </p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
                       </Label>
-                      <div className="relative mt-2">
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 md:w-6 md:h-6 rounded-full bg-green-100 flex items-center justify-center">
-                          <User className="text-green-600 h-3 w-3 md:h-3.5 md:w-3.5" />
+                      <div className="relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl bg-green-100 flex items-center justify-center">
+                          <User className="text-green-600 h-4 w-4" />
                         </div>
                         <Input
                           id="code"
@@ -791,19 +903,18 @@ export default function LoginPage(): ReactElement {
                               setCode(value.replace(/\D/g, "").slice(0, 4))
                             }
                           }}
-                          className="pl-10 md:pl-12 border-green-200 focus:border-green-600 focus:ring-green-600 text-base md:text-lg tracking-wide h-11 md:h-12 bg-white/70 shadow-sm"
-                          placeholder="0000"
-                          required
+                          className="pl-16 border-green-200 focus:border-green-500 focus:ring-green-500 text-xl tracking-widest h-16 bg-white/80 shadow-sm rounded-xl font-mono"
+                          placeholder="0000 (o déjalo en blanco)"
                           autoFocus
                         />
                         {code && (
                           <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            className="absolute right-3 top-1/2 -translate-y-1/2"
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="absolute right-4 top-1/2 -translate-y-1/2"
                           >
-                            <div className="w-5 h-5 md:w-6 md:h-6 rounded-full bg-green-100 flex items-center justify-center">
-                              <CheckCircle className="text-green-600 h-3 w-3 md:h-3.5 md:w-3.5" />
+                            <div className="w-8 h-8 rounded-xl bg-green-100 flex items-center justify-center">
+                              <CheckCircle className="text-green-600 h-4 w-4" />
                             </div>
                           </motion.div>
                         )}
@@ -812,27 +923,12 @@ export default function LoginPage(): ReactElement {
                         <motion.p
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="text-amber-500 text-xs mt-1.5 flex items-center"
+                          className="text-amber-600 text-sm flex items-center gap-2 bg-amber-50 p-3 rounded-lg border border-amber-200"
                         >
-                          <AlertCircle className="h-3 w-3 mr-1" />
+                          <AlertCircle className="h-4 w-4 flex-shrink-0" />
                           El código debe tener 4 dígitos
                         </motion.p>
                       )}
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="rememberMe"
-                        checked={rememberMe}
-                        onCheckedChange={(checked) => setRememberMe(checked === true)}
-                        className="text-green-600 border-green-300 focus:ring-green-600"
-                      />
-                      <label
-                        htmlFor="rememberMe"
-                        className="text-xs md:text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-green-700"
-                      >
-                        Recordar mi código
-                      </label>
                     </div>
 
                     <motion.div
@@ -842,18 +938,18 @@ export default function LoginPage(): ReactElement {
                     >
                       <Button
                         type="submit"
-                        className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold py-2.5 rounded-lg transition-all duration-300 transform hover:scale-[1.01] shadow-md hover:shadow-lg h-11 md:h-12 text-sm md:text-base"
-                        disabled={isLoading || !validateCode(code)}
+                        className="w-full bg-gradient-to-r from-green-600 via-green-700 to-green-800 hover:from-green-700 hover:via-green-800 hover:to-green-900 text-white font-semibold py-4 rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-xl h-16 text-lg"
+                        disabled={isLoading || (code.trim() !== "" && !validateCode(code))}
                       >
                         {isLoading ? (
-                          <div className="flex items-center justify-center gap-2">
-                            <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                          <div className="flex items-center justify-center gap-3">
+                            <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
                             Procesando...
                           </div>
                         ) : (
-                          <div className="flex items-center justify-center gap-2">
+                          <div className="flex items-center justify-center gap-3">
                             Continuar
-                            <ArrowRight className="h-4 w-4" />
+                            <ArrowRight className="h-5 w-5" />
                           </div>
                         )}
                       </Button>
@@ -863,10 +959,10 @@ export default function LoginPage(): ReactElement {
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-xs md:text-sm flex items-start gap-2"
+                        className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl flex items-start gap-3"
                       >
-                        <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                        <p>{error}</p>
+                        <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                        <p className="font-medium">{error}</p>
                       </motion.div>
                     )}
                   </motion.form>
@@ -879,20 +975,20 @@ export default function LoginPage(): ReactElement {
                     initial="hidden"
                     animate="visible"
                     exit="exit"
-                    className="space-y-5"
+                    className="space-y-6"
                     onSubmit={handleSubmit}
                   >
                     <motion.div
                       variants={itemVariants}
-                      className="bg-green-50 p-3 rounded-lg flex items-center justify-between"
+                      className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-xl flex items-center justify-between border border-green-200"
                     >
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 md:w-7 md:h-7 rounded-full bg-green-100 flex items-center justify-center">
-                          <User className="text-green-600 h-3.5 w-3.5 md:h-4 md:w-4" />
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-green-200 flex items-center justify-center">
+                          <User className="text-green-700 h-5 w-5" />
                         </div>
                         <div>
-                          <span className="font-medium text-green-700 text-sm md:text-base">Código: </span>
-                          <span className="font-mono text-green-800 text-sm md:text-base">
+                          <span className="font-semibold text-green-800 text-lg">Código: </span>
+                          <span className="font-mono text-green-900 text-lg tracking-wider">
                             {formatCodeDisplay(code)}
                           </span>
                         </div>
@@ -902,41 +998,41 @@ export default function LoginPage(): ReactElement {
                         variant="ghost"
                         size="sm"
                         onClick={handleBackToCode}
-                        className="text-green-600 hover:text-green-800 hover:bg-green-100 text-xs"
+                        className="text-green-700 hover:text-green-800 hover:bg-green-200 font-medium"
                       >
                         Cambiar
                       </Button>
                     </motion.div>
 
-                    <motion.div variants={itemVariants} className="relative">
+                    <motion.div variants={itemVariants} className="space-y-3">
                       <Label
                         htmlFor="password"
-                        className="text-green-700 flex items-center gap-2 text-sm md:text-base font-medium"
+                        className="text-green-800 flex items-center gap-3 text-lg font-semibold"
                       >
                         Contraseña
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <span className="cursor-help">
-                                <Info className="h-4 w-4 text-green-600 opacity-70" />
+                                <Info className="h-5 w-5 text-green-600 opacity-70 hover:opacity-100 transition-opacity" />
                               </span>
                             </TooltipTrigger>
                             <TooltipContent side="right" sideOffset={10}>
-                              <p className="w-[200px] text-xs">Su contraseña es su número de cédula.</p>
+                              <p className="text-sm">Su contraseña es su número de cédula.</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
                       </Label>
-                      <div className="relative mt-2">
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 md:w-6 md:h-6 rounded-full bg-green-100 flex items-center justify-center">
-                          <CreditCard className="text-green-600 h-3 w-3 md:h-3.5 md:w-3.5" />
+                      <div className="relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl bg-green-100 flex items-center justify-center">
+                          <CreditCard className="text-green-600 h-4 w-4" />
                         </div>
                         <Input
                           id="password"
                           type={showPassword ? "text" : "password"}
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          className="pl-10 md:pl-12 pr-10 md:pr-12 border-green-200 focus:border-green-600 focus:ring-green-600 text-base md:text-lg h-11 md:h-12 bg-white/70 shadow-sm"
+                          className="pl-16 pr-16 border-green-200 focus:border-green-500 focus:ring-green-500 text-xl h-16 bg-white/80 shadow-sm rounded-xl"
                           placeholder="••••••••"
                           required
                           autoFocus
@@ -944,46 +1040,31 @@ export default function LoginPage(): ReactElement {
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 md:w-6 md:h-6 rounded-full bg-green-100 flex items-center justify-center text-green-600 hover:bg-green-200 transition-colors"
+                          className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl bg-green-100 flex items-center justify-center text-green-600 hover:bg-green-200 transition-colors"
                         >
                           {showPassword ? (
-                            <EyeOff className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                            <EyeOff className="h-4 w-4" />
                           ) : (
-                            <Eye className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                            <Eye className="h-4 w-4" />
                           )}
                         </button>
                       </div>
                     </motion.div>
 
-                    <motion.div variants={itemVariants} className="flex items-center space-x-2">
-                      <Checkbox
-                        id="rememberMe"
-                        checked={rememberMe}
-                        onCheckedChange={(checked) => setRememberMe(checked === true)}
-                        className="text-green-600 border-green-300 focus:ring-green-600"
-                      />
-                      <label
-                        htmlFor="rememberMe"
-                        className="text-xs md:text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-green-700"
-                      >
-                        Recordar mi código
-                      </label>
-                    </motion.div>
-
                     <motion.div variants={itemVariants}>
                       <Button
                         type="submit"
-                        className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold py-2.5 rounded-lg transition-all duration-300 transform hover:scale-[1.01] shadow-md hover:shadow-lg flex items-center justify-center gap-2 h-11 md:h-12 text-sm md:text-base"
+                        className="w-full bg-gradient-to-r from-green-600 via-green-700 to-green-800 hover:from-green-700 hover:via-green-800 hover:to-green-900 text-white font-semibold py-4 rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-lg hover:shadow-xl flex items-center justify-center gap-3 h-16 text-lg"
                         disabled={isLoading || !password}
                       >
                         {isLoading ? (
                           <>
-                            <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                            <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
                             Iniciando sesión...
                           </>
                         ) : (
                           <>
-                            <LogIn className="h-4 w-4" />
+                            <LogIn className="h-5 w-5" />
                             Iniciar Sesión
                           </>
                         )}
@@ -994,10 +1075,10 @@ export default function LoginPage(): ReactElement {
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-xs md:text-sm flex items-start gap-2"
+                        className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl flex items-start gap-3"
                       >
-                        <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                        <p>{error}</p>
+                        <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                        <p className="font-medium">{error}</p>
                       </motion.div>
                     )}
                   </motion.form>
@@ -1008,84 +1089,101 @@ export default function LoginPage(): ReactElement {
         </div>
 
         {/* Right side - Welcome Message */}
-        <div className="w-full lg:w-1/2 bg-gradient-to-br from-green-600 to-green-700 text-white p-6 md:p-8 lg:p-12 flex flex-col items-center justify-center relative overflow-hidden">
+        <div className="w-full lg:w-1/2 bg-gradient-to-br from-green-600 via-green-700 to-green-800 text-white p-8 lg:p-16 flex flex-col items-center justify-center relative overflow-hidden">
           {/* Decorative elements */}
           <div className="absolute inset-0">
             <motion.div
               initial={{ opacity: 0.1 }}
               animate={{
-                opacity: [0.1, 0.15, 0.1],
-                y: [0, -10, 0],
-                rotate: [0, 3, 0],
+                opacity: [0.1, 0.2, 0.1],
+                y: [0, -20, 0],
+                rotate: [0, 5, 0],
               }}
-              transition={{ duration: 8, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
-              className="absolute -top-20 -right-20 w-48 h-48 md:w-64 md:h-64 bg-white opacity-10 rounded-full"
+              transition={{ duration: 12, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+              className="absolute -top-32 -right-32 w-80 h-80 bg-white opacity-10 rounded-full"
               style={{ willChange: "transform" }}
             />
             <motion.div
               initial={{ opacity: 0.1 }}
               animate={{
-                opacity: [0.1, 0.2, 0.1],
-                y: [0, 15, 0],
-                x: [0, -8, 0],
+                opacity: [0.1, 0.25, 0.1],
+                y: [0, 25, 0],
+                x: [0, -15, 0],
               }}
-              transition={{ duration: 10, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut", delay: 1 }}
-              className="absolute -bottom-32 -left-20 w-60 h-60 md:w-80 md:h-80 bg-white opacity-10 rounded-full"
+              transition={{ duration: 15, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut", delay: 2 }}
+              className="absolute -bottom-40 -left-32 w-96 h-96 bg-white opacity-10 rounded-full"
+              style={{ willChange: "transform" }}
+            />
+            <motion.div
+              initial={{ opacity: 0.05 }}
+              animate={{
+                opacity: [0.05, 0.15, 0.05],
+                scale: [1, 1.1, 1],
+              }}
+              transition={{ duration: 18, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut", delay: 4 }}
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white opacity-5 rounded-full"
               style={{ willChange: "transform" }}
             />
           </div>
 
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
-            className="text-center relative z-10 max-w-md"
+            transition={{ delay: 0.4, duration: 0.8 }}
+            className="text-center relative z-10 max-w-lg space-y-8"
           >
-            <motion.h2
-              initial={{ y: 20, opacity: 0 }}
+            <motion.div
+              initial={{ y: 30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="text-3xl md:text-4xl font-bold mb-6"
+              transition={{ delay: 0.6, duration: 0.6 }}
+              className="space-y-6"
             >
-              ¡Bienvenido!
-            </motion.h2>
+              <h2 className="text-5xl font-bold mb-4 tracking-tight">
+                ¡Bienvenido!
+              </h2>
+              <div className="w-20 h-1 bg-white/40 rounded-full mx-auto" />
+            </motion.div>
 
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5 }}>
-              <Card className="bg-white/10 backdrop-blur-sm border-white/20 text-white mb-6 md:mb-8 overflow-hidden">
-                <CardContent className="p-4 md:p-6">
-                  <p className="text-white font-medium text-sm md:text-base">
-                    Sistema de gestión integrado para el control y seguimiento de actividades.
+            <motion.div 
+              initial={{ y: 30, opacity: 0 }} 
+              animate={{ y: 0, opacity: 1 }} 
+              transition={{ delay: 0.8, duration: 0.6 }}
+            >
+              <Card className="bg-white/15 backdrop-blur-md border-white/20 text-white overflow-hidden">
+                <CardContent className="p-8">
+                  <p className="text-white/90 font-medium text-lg leading-relaxed">
+                    Sistema de gestión integrado para el control y seguimiento de actividades operacionales.
                   </p>
                 </CardContent>
               </Card>
             </motion.div>
 
             <motion.div
-              initial={{ y: 20, opacity: 0 }}
+              initial={{ y: 30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.6, staggerChildren: 0.1 }}
-              className="flex flex-col gap-3 md:gap-4"
+              transition={{ delay: 1, duration: 0.6, staggerChildren: 0.15 }}
+              className="space-y-4"
             >
               <motion.div
                 variants={itemVariants}
-                className="flex items-center gap-3 text-xs md:text-sm bg-white/10 rounded-lg p-3 backdrop-blur-sm"
+                className="flex items-center gap-4 text-base bg-white/10 rounded-xl p-4 backdrop-blur-sm border border-white/10"
               >
-                <CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-green-200 flex-shrink-0" />
-                <span>Gestión eficiente de solicitudes y permisos</span>
+                <CheckCircle className="h-6 w-6 text-green-200 flex-shrink-0" />
+                <span className="font-medium">Gestión eficiente de solicitudes y permisos</span>
               </motion.div>
               <motion.div
                 variants={itemVariants}
-                className="flex items-center gap-3 text-xs md:text-sm bg-white/10 rounded-lg p-3 backdrop-blur-sm"
+                className="flex items-center gap-4 text-base bg-white/10 rounded-xl p-4 backdrop-blur-sm border border-white/10"
               >
-                <CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-green-200 flex-shrink-0" />
-                <span>Seguimiento en tiempo real de procesos</span>
+                <CheckCircle className="h-6 w-6 text-green-200 flex-shrink-0" />
+                <span className="font-medium">Seguimiento en tiempo real de procesos</span>
               </motion.div>
               <motion.div
                 variants={itemVariants}
-                className="flex items-center gap-3 text-xs md:text-sm bg-white/10 rounded-lg p-3 backdrop-blur-sm"
+                className="flex items-center gap-4 text-base bg-white/10 rounded-xl p-4 backdrop-blur-sm border border-white/10"
               >
-                <CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-green-200 flex-shrink-0" />
-                <span>Interfaz intuitiva y experiencia mejorada</span>
+                <CheckCircle className="h-6 w-6 text-green-200 flex-shrink-0" />
+                <span className="font-medium">Interfaz intuitiva y experiencia mejorada</span>
               </motion.div>
             </motion.div>
           </motion.div>
@@ -1105,19 +1203,19 @@ export default function LoginPage(): ReactElement {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-green-900/20 backdrop-blur-sm flex items-center justify-center z-50"
+            className="fixed inset-0 bg-green-950/30 backdrop-blur-md flex items-center justify-center z-50"
             style={{ willChange: "opacity" }}
           >
             <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: "spring", damping: 15 }}
-              className="bg-white rounded-full p-6 md:p-8 shadow-2xl"
+              initial={{ scale: 0.8, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              transition={{ type: "spring", damping: 20, stiffness: 300 }}
+              className="bg-white rounded-3xl p-12 shadow-2xl border border-green-100/50"
               style={{ willChange: "transform" }}
             >
-              <motion.div className="w-16 h-16 md:w-24 md:h-24 relative">
+              <motion.div className="w-24 h-24 relative mx-auto">
                 <svg
-                  className="w-16 h-16 md:w-24 md:h-24 text-green-600"
+                  className="w-24 h-24 text-green-600"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
@@ -1129,13 +1227,13 @@ export default function LoginPage(): ReactElement {
                     d="M22 11.08V12a10 10 0 1 1-5.93-9.14"
                     initial={{ pathLength: 0, opacity: 0 }}
                     animate={{ pathLength: 1, opacity: 1 }}
-                    transition={{ duration: 0.6, ease: "easeInOut" }}
+                    transition={{ duration: 0.8, ease: "easeInOut" }}
                   />
                   <motion.polyline
                     points="22 4 12 14.01 9 11.01"
                     initial={{ pathLength: 0, opacity: 0 }}
                     animate={{ pathLength: 1, opacity: 1 }}
-                    transition={{ duration: 0.4, ease: "easeInOut", delay: 0.6 }}
+                    transition={{ duration: 0.6, ease: "easeInOut", delay: 0.8 }}
                   />
                 </svg>
               </motion.div>
@@ -1148,13 +1246,13 @@ export default function LoginPage(): ReactElement {
       <style jsx global>{`
         @keyframes shake {
           0% { transform: translateX(0); }
-          25% { transform: translateX(-6px); }
-          50% { transform: translateX(6px); }
-          75% { transform: translateX(-3px); }
+          25% { transform: translateX(-8px); }
+          50% { transform: translateX(8px); }
+          75% { transform: translateX(-4px); }
           100% { transform: translateX(0); }
         }
         .animate-shake {
-          animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+          animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
         }
         
         /* Optimize for mobile performance */
@@ -1162,6 +1260,29 @@ export default function LoginPage(): ReactElement {
           * {
             -webkit-tap-highlight-color: transparent;
           }
+        }
+        
+        /* Smooth scrolling */
+        html {
+          scroll-behavior: smooth;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+          width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+          background: #f1f5f9;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+          background: #10b981;
+          border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+          background: #059669;
         }
       `}</style>
     </div>

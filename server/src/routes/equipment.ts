@@ -10,7 +10,18 @@ import { User } from '../types/index.js';
 import logger from '../config/logger.js';
 import { validateWithZod } from '../utils/validation.js';
 
-const equipment = new Hono();
+type AppEnv = {
+  Variables: {
+    currentUser: User;
+    payload: { 
+      sub: string; 
+      iat: number;
+      exp: number;
+    };
+  }
+}
+
+const equipment = new Hono<AppEnv>();
 
 // POST /equipment-request - Crear solicitud de equipo
 equipment.post('/equipment-request', getCurrentUser, async (c) => {

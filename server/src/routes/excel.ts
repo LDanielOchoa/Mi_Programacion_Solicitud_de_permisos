@@ -5,32 +5,50 @@ import {
   WeekQueryInput
 } from '../schemas/index.js';
 import { executeQuery } from '../config/database.js';
+import { User } from '../types/index.js';
 import logger from '../config/logger.js';
 import { validateWithZod } from '../utils/validation.js';
 
-const excel = new Hono();
+type AppEnv = {
+  Variables: {
+    currentUser: User;
+    payload: { 
+      sub: string; 
+      iat: number;
+      exp: number;
+    };
+  }
+}
 
-// GET /excel - Obtener datos para Excel
-excel.get('/excel', async (c) => {
+const excel = new Hono<AppEnv>();
+
+// GET /excel-permisos - Obtener datos para Excel con discriminación de tipos de usuario  
+excel.get('/excel-permisos', async (c) => {
   const records = await executeQuery<any[]>(
     `SELECT 
-        code,
-        name,
-        telefono,
-        fecha,
-        tipo_novedad AS novedad,
-        description,
-        respuesta,
-        solicitud
-      FROM permit_perms`,
+        p.code,
+        p.name,
+        p.telefono,
+        p.fecha,
+        p.tipo_novedad AS novedad,
+        p.description,
+        p.respuesta,
+        p.solicitud,
+        COALESCE(u.userType, 'registered') as user_type,
+        CASE 
+          WHEN COALESCE(u.userType, 'registered') = 'se_maintenance' THEN 'Personal de Mantenimiento'
+          ELSE 'Usuario Registrado'
+        END as tipo_usuario_desc
+      FROM permit_perms p
+      LEFT JOIN users u ON p.code = u.code`,
     [],
     { fetchAll: true }
   );
   
   logger.debug(`Registros obtenidos para /excel: ${records?.length || 0}`);
   
-  // Agrupar por claves compuestas
-  const grouped = new Map<string, string[]>();
+  // Agrupar por claves compuestas incluyendo tipo de usuario
+  const grouped = new Map<string, { fechas: string[], userType: string, tipoUsuarioDesc: string }>();
   
   for (const r of records || []) {
     const key = `${r.code}|${r.name}|${r.telefono}|${r.novedad}|${r.description}|${r.respuesta}`;
@@ -47,24 +65,28 @@ excel.get('/excel', async (c) => {
     }
     
     if (grouped.has(key)) {
-      grouped.get(key)!.push(...fechas);
+      grouped.get(key)!.fechas.push(...fechas);
     } else {
-      grouped.set(key, fechas);
+      grouped.set(key, { 
+        fechas: fechas, 
+        userType: r.user_type || 'registered',
+        tipoUsuarioDesc: r.tipo_usuario_desc || 'Usuario Registrado'
+      });
     }
   }
   
   // Construir el resultado final
   const result = [];
   
-  for (const [key, fechas] of grouped) {
+  for (const [key, data] of grouped) {
     const [code, name, telefono, novedad, description, respuesta] = key.split('|');
     
     try {
       let fechaInicio = '';
       let fechaFin = '';
       
-      if (fechas.length > 0) {
-        const fechasDate = fechas
+      if (data.fechas.length > 0) {
+        const fechasDate = data.fechas
           .map(f => {
             try {
               return new Date(f);
@@ -89,7 +111,9 @@ excel.get('/excel', async (c) => {
         fecha_fin: fechaFin,
         novedad,
         description,
-        respuesta
+        respuesta,
+        user_type: data.userType,
+        tipo_usuario: data.tipoUsuarioDesc
       });
       
     } catch (error) {
@@ -102,7 +126,9 @@ excel.get('/excel', async (c) => {
         fecha_fin: '',
         novedad,
         description,
-        respuesta
+        respuesta,
+        user_type: data.userType,
+        tipo_usuario: data.tipoUsuarioDesc
       });
     }
   }

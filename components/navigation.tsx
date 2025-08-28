@@ -36,6 +36,7 @@ interface UserData {
   role?: string
   department?: string
   avatar?: string
+  userType?: 'registered' | 'se_maintenance'
 }
 
 interface SidebarProps {
@@ -101,8 +102,8 @@ export default function ModernSidebar({ userData }: SidebarProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [isMobileOpen])
 
-  // Navigation items
-  const mainNavItems = [
+  // Navigation items - filter based on user type
+  const allNavItems = [
     {
       href: "/dashboard",
       label: "Dashboard",
@@ -113,12 +114,6 @@ export default function ModernSidebar({ userData }: SidebarProps) {
       href: "/solicitud-permisos",
       label: "Permisos",
       icon: FileText,
-      badge: null,
-    },
-    {
-      href: "/solicitud-equipo",
-      label: "Postulaciones",
-      icon: Briefcase,
       badge: null,
     },
     {
@@ -140,6 +135,14 @@ export default function ModernSidebar({ userData }: SidebarProps) {
       badge: null,
     },
   ]
+
+  // Filter navigation items based on user type
+  const mainNavItems = allNavItems.filter(item => {
+    if ((item as any).hideForMaintenance && userData?.userType === 'se_maintenance') {
+      return false
+    }
+    return true
+  })
 
   // Secondary navigation items
   const secondaryNavItems = [
@@ -258,7 +261,6 @@ export default function ModernSidebar({ userData }: SidebarProps) {
             <h2 className="text-lg font-medium text-green-800">
               {pathname === "/dashboard" && "Dashboard"}
               {pathname === "/solicitud-permisos" && "Solicitud de Permisos"}
-              {pathname === "/solicitud-equipo" && "Postulaciones"}
               {pathname === "/solicitudes-global" && "Mis Solicitudes"}
               {pathname === "/notificaciones" && "Notificaciones"}
               {pathname === "/mensajes" && "Mensajes"}

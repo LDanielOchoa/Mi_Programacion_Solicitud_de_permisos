@@ -26,6 +26,8 @@ export type Request = {
     name: string;
     cargo?: string;
     phone?: string;
+    cedula?: string;
+    userType?: 'registered' | 'se_maintenance';
   }
   
   

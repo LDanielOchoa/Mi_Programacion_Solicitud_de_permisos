@@ -10,22 +10,64 @@ import { User } from '../types/index.js';
 import logger from '../config/logger.js';
 import { validateWithZod } from '../utils/validation.js';
 
-const users = new Hono<{
+type AppEnv = {
   Variables: {
-    currentUser: User
+    currentUser: User;
+    payload: { 
+      sub: string; 
+      iat: number;
+      exp: number;
+    };
   }
-}>();
+}
 
-// GET /user/lists - Obtener todos los usuarios (solo admin)
-users.get('/user/lists', requireAdmin, async (c) => {
-  const usersList = await executeQuery<User[]>(
-    'SELECT * FROM users', [], { fetchAll: true }
-  );
-  return c.json(usersList || []);
+const users = new Hono<AppEnv>();
+
+// GET /user/lists - Obtener todos los usuarios (solo admin, con paginación y búsqueda)
+users.get('/user/lists', getCurrentUser, requireAdmin, async (c) => {
+  const page = parseInt(c.req.query('page') || '1', 10);
+  const limit = parseInt(c.req.query('limit') || '8', 10);
+  const offset = (page - 1) * limit;
+  const searchTerm = c.req.query('search') || '';
+  const area = c.req.query('area') || '';
+
+  const queryParams: (string | number)[] = [];
+  let whereClauses: string[] = [];
+
+  if (searchTerm) {
+    whereClauses.push(`(name LIKE ? OR code LIKE ? OR cargo LIKE ?)`);
+    const searchTermLike = `%${searchTerm}%`;
+    queryParams.push(searchTermLike, searchTermLike, searchTermLike);
+  }
+
+  if (area && area !== 'Todas') {
+    whereClauses.push(`cargo = ?`);
+    queryParams.push(area);
+  }
+  
+  const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+  const totalQuery = `SELECT COUNT(*) as total FROM users ${whereSql}`;
+  const usersQuery = `SELECT code, name, telefone, cargo, role, password FROM users ${whereSql} ORDER BY name ASC LIMIT ? OFFSET ?`;
+  
+  const [usersList, totalResult] = await Promise.all([
+    executeQuery<User[]>(usersQuery, [...queryParams, limit, offset], { fetchAll: true }),
+    executeQuery<{ total: number }>(totalQuery, queryParams, { fetchOne: true })
+  ]);
+  
+  const total = totalResult?.total || 0;
+
+  return c.json({
+    data: usersList || [],
+    page,
+    limit,
+    total,
+    totalPages: Math.ceil(total / limit) || 1,
+  });
 });
 
 // POST /users - Agregar nuevo usuario (solo admin)
-users.post('/users', requireAdmin, async (c) => {
+users.post('/users', getCurrentUser, requireAdmin, async (c) => {
   const adminUser = c.get('currentUser');
   const body = await c.req.json();
   const user: UserInput = validateWithZod(UserSchema, body);
@@ -38,8 +80,8 @@ users.post('/users', requireAdmin, async (c) => {
   }
   
   await executeQuery(
-    'INSERT INTO users (code, name, telefone, email, password, role, cargo) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    [user.code, user.name, user.phone, user.email || '', user.password || '', user.role || 'employee', user.cargo || ''],
+    'INSERT INTO users (code, name, telefone, password, role, cargo) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [user.code, user.name, user.phone, user.password || '', user.role || 'employee', user.cargo || ''],
     { commit: true }
   );
   
@@ -48,7 +90,7 @@ users.post('/users', requireAdmin, async (c) => {
 });
 
 // PUT /users/{code} - Actualizar usuario (solo admin)
-users.put('/users/:code', requireAdmin, async (c) => {
+users.put('/users/:code', getCurrentUser, requireAdmin, async (c) => {
   const adminUser = c.get('currentUser');
   const code = c.req.param('code');
   const body = await c.req.json();
@@ -63,13 +105,13 @@ users.put('/users/:code', requireAdmin, async (c) => {
   
   if (user.password) {
     await executeQuery(
-      'UPDATE users SET name = ?, telefone = ?, email = ?, password = ?, role = ?, cargo = ? WHERE code = ?',
-      [user.name, user.phone, user.email || '', user.password, user.role || 'employee', user.cargo || '', code], { commit: true }
+      'UPDATE users SET name = ?, telefone = ?, password = ?, role = ?, cargo = ? WHERE code = ?',
+      [user.name, user.phone, user.password, user.role || 'employee', user.cargo || '', code], { commit: true }
     );
   } else {
     await executeQuery(
-      'UPDATE users SET name = ?, telefone = ?, email = ?, role = ?, cargo = ? WHERE code = ?',
-      [user.name, user.phone, user.email || '', user.role || 'employee', user.cargo || '', code], { commit: true }
+      'UPDATE users SET name = ?, telefone = ?, role = ?, cargo = ? WHERE code = ?',
+      [user.name, user.phone, user.role || 'employee', user.cargo || '', code], { commit: true }
     );
   }
   
@@ -78,7 +120,7 @@ users.put('/users/:code', requireAdmin, async (c) => {
 });
 
 // DELETE /users/{code} - Eliminar usuario (solo admin)
-users.delete('/users/:code', requireAdmin, async (c) => {
+users.delete('/users/:code', getCurrentUser, requireAdmin, async (c) => {
   const adminUser = c.get('currentUser');
   const code = c.req.param('code');
   if (!code) throw new HTTPException(400, { message: 'Código de usuario requerido' });

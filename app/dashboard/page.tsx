@@ -22,7 +22,7 @@ import {
   ArrowRight,
   Zap,
   Settings,
-  HelpCircle,
+  ChevronDown,
   LogOut,
   Menu,
   X
@@ -242,6 +242,7 @@ export default function Dashboard() {
   const [refreshing, setRefreshing] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [userPhotoUrl, setUserPhotoUrl] = useState<string | null>(null)
   const [statsData, setStatsData] = useState({
     total: 0,
     approved: 0,
@@ -255,6 +256,50 @@ export default function Dashboard() {
       router.push('/')
     }
   }, [isUserLoading, userData, router])
+
+  // Load user photo
+  useEffect(() => {
+    console.log('Debug - userData completo:', userData)
+    const cedulaToUse = userData?.cedula || userData?.code
+    console.log('Debug - Cédula a usar para foto:', cedulaToUse)
+    if (cedulaToUse) {
+      loadUserPhoto(cedulaToUse)
+    }
+  }, [userData])
+
+  // Function to try loading user photo using backend proxy
+  const loadUserPhoto = async (cedula: string) => {
+    console.log('Debug - Intentando cargar foto para cédula:', cedula)
+    
+    try {
+      // Usar el endpoint proxy del backend para evitar problemas de CORS
+      const imageUrl = `https://solicitud-permisos.sao6.com.co/api/images/empleado/${cedula}`
+      console.log(`Intentando cargar imagen via proxy: ${imageUrl}`)
+      
+      // Verificar si la imagen existe usando fetch al proxy
+      const response = await fetch(imageUrl, { method: 'HEAD' })
+      
+      if (response.ok) {
+        console.log(`Imagen encontrada para cédula ${cedula}`)
+        setUserPhotoUrl(imageUrl)
+        return
+      } else {
+        console.log(`No se encontró imagen para cédula ${cedula} - Status: ${response.status}`)
+        setUserPhotoUrl(null)
+      }
+    } catch (error) {
+      console.log('Error al cargar imagen via proxy:', error)
+      setUserPhotoUrl(null)
+    }
+  }
+
+  // Logout function
+  const handleLogout = () => {
+    localStorage.removeItem('accessToken')
+    localStorage.removeItem('userData')
+    localStorage.removeItem('dashboardNotifications')
+    router.push('/')
+  }
 
   // Actualizar tiempo
   useEffect(() => {
@@ -462,8 +507,8 @@ export default function Dashboard() {
     return <LoadingOverlay />
   }
 
-  // Enhanced quick access cards data
-  const quickAccessCards = [
+  // Enhanced quick access cards data - filter based on user type
+  const allQuickAccessCards = [
     {
       title: "Solicitar Permiso",
       description: "Crea una nueva solicitud de permiso laboral de forma rápida y sencilla",
@@ -487,6 +532,7 @@ export default function Dashboard() {
       textColor: "text-emerald-700",
       action: "Ver postulaciones",
       features: ["Turnos disponibles", "Gestión flexible", "Notificaciones automáticas"],
+      hideForMaintenance: true, // Hide for maintenance users
     },
     {
       title: "Mis Solicitudes",
@@ -503,6 +549,14 @@ export default function Dashboard() {
     },
   ]
 
+  // Filter cards based on user type
+  const quickAccessCards = allQuickAccessCards.filter(card => {
+    if (card.hideForMaintenance && userData?.userType === 'se_maintenance') {
+      return false
+    }
+    return true
+  })
+
   const statsCards = [
     {
       title: "Total Solicitudes",
@@ -512,9 +566,6 @@ export default function Dashboard() {
       bgColor: "bg-green-50",
       iconColor: "text-green-600",
       borderColor: "border-green-200",
-      percentage: 100,
-      trend: "+12%",
-      trendUp: true,
     },
     {
       title: "Aprobadas",
@@ -524,9 +575,6 @@ export default function Dashboard() {
       bgColor: "bg-emerald-50",
       iconColor: "text-emerald-600",
       borderColor: "border-emerald-200",
-      percentage: statsData.total > 0 ? Math.round((statsData.approved / statsData.total) * 100) : 0,
-      trend: "+8%",
-      trendUp: true,
     },
     {
       title: "Pendientes",
@@ -536,9 +584,7 @@ export default function Dashboard() {
       bgColor: "bg-yellow-50",
       iconColor: "text-yellow-600",
       borderColor: "border-yellow-200",
-      percentage: statsData.total > 0 ? Math.round((statsData.pending / statsData.total) * 100) : 0,
-      trend: "-3%",
-      trendUp: false,
+
     },
     {
       title: "Rechazadas",
@@ -548,9 +594,6 @@ export default function Dashboard() {
       bgColor: "bg-red-50",
       iconColor: "text-red-600",
       borderColor: "border-red-200",
-      percentage: statsData.total > 0 ? Math.round((statsData.rejected / statsData.total) * 100) : 0,
-      trend: "-5%",
-      trendUp: false,
     },
   ]
 
@@ -643,79 +686,89 @@ export default function Dashboard() {
                 {/* User avatar and menu */}
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="ghost" className="p-0 h-auto rounded-full relative">
+                    <Button
+                      variant="ghost"
+                      className="p-2 h-auto rounded-xl relative group hover:bg-accent/10 transition-all duration-300 border border-transparent hover:border-border/50"
+                    >
                       <motion.div
-                        initial={{ scale: 0.8, opacity: 0 }}
+                        initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        transition={{ duration: 0.5, delay: 0.5 }}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.95 }}
+                        transition={{ duration: 0.4, ease: "easeOut" }}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="flex items-center gap-3"
                       >
-                        <Avatar className="h-11 w-11 border-3 border-green-200 shadow-lg ring-2 ring-green-100">
-                          <AvatarFallback className="bg-gradient-to-br from-green-500 to-emerald-600 text-white font-bold text-lg">
-                            {getUserInitials(userData.name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        {hasNewNotification && (
-                          <motion.span
-                            className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full border-2 border-white shadow-lg"
-                            animate={{ scale: [1, 1.2, 1] }}
-                            transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
-                          />
-                        )}
+                        <div className="relative">
+                          <Avatar className="h-10 w-10 border-2 border-green-200 shadow-lg ring-2 ring-green-100 transition-all duration-300 group-hover:border-green-300 group-hover:ring-green-200">
+                            {userPhotoUrl ? (
+                              <AvatarImage src={userPhotoUrl} alt={userData.name} className="object-cover" />
+                            ) : null}
+                            <AvatarFallback className="bg-gradient-to-br from-green-500 via-green-600 to-emerald-600 text-white font-bold text-sm">
+                              {getUserInitials(userData.name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          {hasNewNotification && (
+                            <motion.span
+                              className="absolute -top-1 -right-1 h-3 w-3 bg-destructive rounded-full border-2 border-background shadow-sm"
+                              animate={{ scale: [1, 1.2, 1] }}
+                              transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
+                            />
+                          )}
+                        </div>
+                        <div className="hidden md:flex flex-col items-start min-w-0">
+                          <span className="font-semibold text-foreground text-sm truncate max-w-32">{userData.name}</span>
+                          <span className="text-muted-foreground text-xs truncate max-w-32">{userData.cargo}</span>
+                        </div>
+                        <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                       </motion.div>
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-80 p-0 mr-4 rounded-2xl shadow-2xl border-0 overflow-hidden" align="end">
-                    <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-6">
-                      <div className="flex items-center space-x-4">
-                        <Avatar className="h-14 w-14 border-3 border-white/30 shadow-lg">
-                          <AvatarFallback className="bg-white/20 text-white font-bold text-xl">
+
+                  <PopoverContent
+                    className="w-80 p-0 mr-4 rounded-2xl shadow-2xl border border-border/50 overflow-hidden bg-card backdrop-blur-sm"
+                    align="end"
+                  >
+                    {/* Enhanced header with gradient and better typography */}
+                    <div className="bg-gradient-to-br from-green-500 via-green-600 to-emerald-600 p-6 relative overflow-hidden">
+                      <div className="absolute inset-0 bg-gradient-to-br from-black/5 to-black/10"></div>
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-16 translate-x-16"></div>
+                      <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-12 -translate-x-12"></div>
+
+                      <div className="relative flex items-center space-x-4">
+                        <Avatar className="h-16 w-16 border-3 border-white/30 shadow-xl ring-4 ring-white/20">
+                          {userPhotoUrl ? (
+                            <AvatarImage src={userPhotoUrl} alt={userData.name} className="object-cover" />
+                          ) : null}
+                          <AvatarFallback className="bg-white/20 backdrop-blur-sm text-white font-bold text-xl">
                             {getUserInitials(userData.name)}
                           </AvatarFallback>
                         </Avatar>
-                        <div>
-                          <h3 className="font-bold text-white text-lg">{userData.name}</h3>
-                          <p className="text-green-100 text-sm font-medium">{userData.cargo}</p>
-                          <Badge className="bg-white/20 text-white text-xs mt-1 border-0">{userData.code}</Badge>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-white text-lg truncate font-sans">{userData.name}</h3>
+                          <p className="text-white/90 text-sm font-medium truncate mb-2">{userData.cargo}</p>
+                          <Badge className="bg-white/20 backdrop-blur-sm text-white text-xs border-0 hover:bg-white/30 transition-all duration-200 font-medium">
+                            ID: {userData.code}
+                          </Badge>
                         </div>
                       </div>
                     </div>
-                    <div className="p-4 space-y-2 bg-white">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start rounded-xl hover:bg-green-50 hover:text-green-700"
-                      >
-                        <Settings className="h-4 w-4 mr-3 text-green-600" />
-                        Configuración
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start rounded-xl hover:bg-green-50 hover:text-green-700"
-                      >
-                        <Bell className="h-4 w-4 mr-3 text-green-600" />
-                        Notificaciones
-                        {hasNewNotification && <Badge className="ml-auto bg-red-500 text-white text-xs">Nuevo</Badge>}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full justify-start rounded-xl hover:bg-green-50 hover:text-green-700"
-                      >
-                        <HelpCircle className="h-4 w-4 mr-3 text-green-600" />
-                        Ayuda y soporte
-                      </Button>
-                      <div className="pt-2 border-t border-green-100">
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="w-full rounded-xl bg-red-500 hover:bg-red-600"
-                        >
-                          <LogOut className="h-4 w-4 mr-2" />
-                          Cerrar Sesión
-                        </Button>
+
+                    {/* Enhanced menu actions with better spacing and hover effects */}
+                    <div className="p-6 space-y-2 bg-card">
+                      <div className="flex justify-center">
+                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={handleLogout}
+                            className="w-full rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-lg hover:shadow-xl transition-all duration-200 font-semibold p-4 h-auto min-w-48"
+                          >
+                            <div className="flex items-center justify-center w-full">
+                              <LogOut className="h-4 w-4 mr-2" />
+                              Cerrar Sesión
+                            </div>
+                          </Button>
+                        </motion.div>
                       </div>
                     </div>
                   </PopoverContent>
@@ -778,7 +831,7 @@ export default function Dashboard() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8, delay: 0.3 }}
                 >
-                  Bienvenido al sistema de gestión de permisos y solicitudes SAO6. Gestiona tus permisos, postulaciones
+                  Bienvenido al  de permisos y solicitudes SAO6. Gestiona tus permisos, postulaciones
                   y revisa el estado de tus solicitudes de manera fácil, rápida y eficiente.
                 </motion.p>
               </motion.div>
@@ -813,15 +866,6 @@ export default function Dashboard() {
                         >
                           <stat.icon className={`h-6 w-6 ${stat.iconColor}`} />
                         </motion.div>
-                        <motion.div
-                          className={`flex items-center text-sm font-semibold ${stat.trendUp ? "text-green-600" : "text-red-600"}`}
-                          initial={{ opacity: 0, x: 10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.2 + index * 0.1, duration: 0.5 }}
-                        >
-                          <TrendingUp className={`h-4 w-4 mr-1 ${stat.trendUp ? "" : "rotate-180"}`} />
-                          {stat.trend}
-                        </motion.div>
                       </div>
                       <div className="flex-grow">
                         <h4 className="text-lg font-semibold text-gray-700 mb-2">{stat.title}</h4>
@@ -832,13 +876,6 @@ export default function Dashboard() {
                             <AnimatedCounter value={stat.value} duration={1.5} />
                           </p>
                         )}
-                      </div>
-                      <div className="mt-4">
-                        <Progress
-                          value={stat.percentage}
-                          className="h-2 bg-gray-100 rounded-full"
-                        />
-                        <p className="text-xs text-gray-500 mt-1 text-right">{stat.percentage}% del total</p>
                       </div>
                     </CardContent>
                   </Card>

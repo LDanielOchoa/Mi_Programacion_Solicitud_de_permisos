@@ -3,7 +3,6 @@ import { HTTPException } from 'hono/http-exception';
 import { 
   LoginSchema, 
   UpdatePhoneSchema,
-  LoginInput,
   UpdatePhoneInput 
 } from '../schemas/index.js';
 import { 
@@ -14,18 +13,54 @@ import {
   getUserByCode 
 } from '../middleware/auth.js';
 import { executeQuery } from '../config/database.js';
+import { getEmployeeFromSE } from '../config/sqlserver.js';
 import { User, LoginResponse, UserResponse } from '../types/index.js';
 import logger from '../config/logger.js';
 import { validateWithZod } from '../utils/validation.js';
 
-const auth = new Hono();
+type AppEnv = {
+  Variables: {
+    currentUser: User;
+    payload: { 
+      sub: string; 
+      iat: number;
+      exp: number;
+    };
+  }
+}
+
+const auth = new Hono<AppEnv>();
 
 // POST /auth/login
 auth.post('/login', async (c) => {
   const body = await c.req.json();
-  const { code, password }: LoginInput = validateWithZod(LoginSchema, body);
+  const { code, password } = validateWithZod(LoginSchema, body);
   
-  // Buscar usuario en la base de datos
+  // Si el código está vacío, intentar validar con cédula desde SE_w0550
+  if (!code || code.trim() === '') {
+    logger.info({ cedula: password }, 'Intento de login sin código, validando con cédula en SE_w0550');
+    
+    // Buscar empleado en tabla SE_w0550 con filtros específicos
+    const employee = await getEmployeeFromSE(password);
+    
+    if (!employee) {
+      logger.warn({ cedula: password }, 'Empleado no encontrado en SE_w0550 o no pertenece a los centros de costo permitidos');
+      throw new HTTPException(400, { message: 'No tienes acceso al sistema. Solo personal de Técnicos de Mantenimiento y Gestión de Mantenimiento pueden acceder.' });
+    }
+    
+    // Crear token de acceso para empleado de SE_w0550
+    const accessToken = await createAccessToken({ sub: employee.cedula });
+    
+        
+    const response: LoginResponse = {
+      access_token: accessToken,
+      role: 'employee' // Asignar rol de empleado por defecto
+    };
+    
+    return c.json(response);
+  }
+  
+  // Lógica original para usuarios con código
   const user = await executeQuery<User>(
     'SELECT * FROM users WHERE code = ?',
     [code],
@@ -37,6 +72,13 @@ auth.post('/login', async (c) => {
     throw new HTTPException(400, { message: 'Credenciales inválidas' });
   }
   
+  // Marcar como usuario registrado si no tiene userType definido
+  if (!user.userType) {
+    user.userType = 'registered';
+  }
+  
+  // Log de login exitoso para usuario registrado
+    
   // Crear token de acceso
   const accessToken = await createAccessToken({ sub: user.code });
   
@@ -45,7 +87,6 @@ auth.post('/login', async (c) => {
     role: user.role
   };
   
-  logger.info({ code: user.code, role: user.role }, 'Login exitoso');
   return c.json(response);
 });
 
@@ -53,11 +94,32 @@ auth.post('/login', async (c) => {
 auth.get('/user', getCurrentUser, async (c) => {
   const currentUser = c.get('currentUser') as User;
   
+  // Si el usuario no existe en la tabla users, intentar obtener datos de SE_w0550
+  if (!currentUser || !currentUser.name) {
+    const userCode = c.get('payload')?.sub;
+    if (userCode) {
+      const employee = await getEmployeeFromSE(userCode);
+      if (employee) {
+        const response = {
+          code: employee.cedula,
+          name: employee.nombre,
+          phone: '', // No hay teléfono en SE_w0550
+          cargo: employee.cargo || '',
+          cedula: employee.cedula,
+          userType: 'se_maintenance'
+        };
+        return c.json(response);
+      }
+    }
+  }
+  
   const response = {
     code: currentUser.code,
     name: currentUser.name,
     phone: currentUser.telefone,
-    cargo: currentUser.cargo || ''
+    cargo: currentUser.cargo || '',
+    cedula: currentUser.code, // Para usuarios regulares, usar el código como cédula
+    userType: currentUser.userType || 'registered' // Incluir tipo de usuario
   };
   
   return c.json(response);

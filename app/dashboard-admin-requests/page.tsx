@@ -4,12 +4,12 @@ import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { useTokenRefresh } from "@/hooks/use-token-refresh"
-import { 
-  FileText, 
-  BarChart, 
-  AlertTriangle, 
-  Database, 
-  Users, 
+import {
+  FileText,
+  BarChart,
+  AlertTriangle,
+  Database,
+  Users,
   LogOut,
   ChevronRight,
   Activity,
@@ -36,6 +36,9 @@ import {
   Signal
 } from "lucide-react"
 import PermitsManagement from "./permits-management"
+import AdminUsersModal from "@/components/AdminUsersModal.tsx/page"
+import RequestDashboard from "@/components/history-dashboard/requests-dashbord"
+import PermitRequestForm from "@/app/dashboard-admin-requests/solicitud-permisos/page"
 
 // Componente de Mantenimiento mejorado
 const MaintenanceMessage = ({ sectionName }: { sectionName: string }) => {
@@ -88,7 +91,7 @@ const MaintenanceMessage = ({ sectionName }: { sectionName: string }) => {
       >
         <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent rounded-3xl"></div>
         <Construction className="h-16 w-16 text-white drop-shadow-lg relative z-10" />
-        
+
         {/* Partículas flotantes */}
         {[...Array(6)].map((_, i) => (
           <motion.div
@@ -111,8 +114,8 @@ const MaintenanceMessage = ({ sectionName }: { sectionName: string }) => {
           />
         ))}
       </motion.div>
-      
-      <motion.h3 
+
+      <motion.h3
         className="text-4xl font-bold bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 bg-clip-text text-transparent mb-6"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -120,8 +123,8 @@ const MaintenanceMessage = ({ sectionName }: { sectionName: string }) => {
       >
         En Mantenimiento
       </motion.h3>
-      
-      <motion.p 
+
+      <motion.p
         className="text-xl text-gray-600 mb-8 max-w-lg leading-relaxed"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -129,8 +132,8 @@ const MaintenanceMessage = ({ sectionName }: { sectionName: string }) => {
       >
         La sección <span className="font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-lg">{sectionName}</span> está siendo mejorada para brindarte una experiencia excepcional.
       </motion.p>
-      
-      <motion.div 
+
+      <motion.div
         className="bg-gradient-to-br from-amber-50 via-orange-50 to-amber-50 p-8 rounded-2xl border border-amber-200/50 max-w-lg shadow-xl backdrop-blur-sm"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -145,10 +148,10 @@ const MaintenanceMessage = ({ sectionName }: { sectionName: string }) => {
         <ul className="text-amber-700 space-y-4 text-left">
           {[
             "Optimizando la interfaz de usuario",
-            "Mejorando el rendimiento del sistema", 
+            "Mejorando el rendimiento del sistema",
             "Agregando nuevas funcionalidades"
           ].map((item, index) => (
-            <motion.li 
+            <motion.li
               key={index}
               className="flex items-center space-x-3"
               initial={{ opacity: 0, x: -20 }}
@@ -161,8 +164,8 @@ const MaintenanceMessage = ({ sectionName }: { sectionName: string }) => {
           ))}
         </ul>
       </motion.div>
-      
-      <motion.div 
+
+      <motion.div
         className="mt-10 flex items-center space-x-3 text-gray-500 bg-white/50 px-6 py-3 rounded-full backdrop-blur-sm border border-gray-200"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -177,7 +180,7 @@ const MaintenanceMessage = ({ sectionName }: { sectionName: string }) => {
 
 export default function AdminDashboard() {
   type SectionType = "permits" | "indicators" | "extemporaneous" | "history" | "users" | "exit"
-  
+
   const router = useRouter()
   const { refreshToken } = useTokenRefresh()
   const [activeSection, setActiveSection] = useState<SectionType>("permits")
@@ -190,7 +193,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const role = localStorage.getItem("userRole") || "admin"
     let name = localStorage.getItem("userName") || "Administrador"
-    
+
     // Si no hay nombre guardado, intentar obtenerlo del backend
     if (name === "Administrador") {
       const token = localStorage.getItem("accessToken")
@@ -201,26 +204,29 @@ export default function AdminDashboard() {
             "Content-Type": "application/json",
           },
         })
-        .then(response => {
-          if (response.ok) {
-            return response.json()
-          }
-          throw new Error("No se pudo obtener información del usuario")
-        })
-        .then(userData => {
-          const userName = userData.name || "Administrador"
-          localStorage.setItem("userName", userName)
-          setUserName(userName)
-        })
-        .catch(error => {
-          console.warn("Error al obtener nombre del usuario:", error)
-          setUserName("Administrador")
-        })
+          .then(response => {
+            if (response.ok) {
+              return response.json()
+            }
+            throw new Error("No se pudo obtener información del usuario")
+          })
+          .then(userData => {
+            const userName = userData.name || "Administrador"
+            localStorage.setItem("userName", userName)
+            // Guardar todos los datos del usuario para que otros componentes puedan acceder
+            localStorage.setItem('userData', JSON.stringify(userData))
+            console.log('DEBUG dashboard: userData guardado en localStorage:', userData)
+            setUserName(userName)
+          })
+          .catch(error => {
+            console.warn("Error al obtener nombre del usuario:", error)
+            setUserName("Administrador")
+          })
       }
     } else {
-    setUserName(name)
+      setUserName(name)
     }
-    
+
     setUserRole(role)
 
     // Update time every minute
@@ -235,7 +241,7 @@ export default function AdminDashboard() {
         minute: '2-digit'
       }))
     }
-    
+
     updateTime()
     const interval = setInterval(updateTime, 60000)
     return () => clearInterval(interval)
@@ -296,15 +302,6 @@ export default function AdminDashboard() {
       gradient: "from-green-500 to-emerald-500"
     },
     {
-      id: "indicators",
-      title: "Indicadores",
-      icon: BarChart,
-      description: "Estadísticas del sistema",
-      color: "text-green-600",
-      activeColor: "bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-green-300",
-      gradient: "from-emerald-500 to-green-500"
-    },
-    {
       id: "extemporaneous",
       title: "Permisos Extemporáneos",
       icon: AlertTriangle,
@@ -353,7 +350,7 @@ export default function AdminDashboard() {
     return section?.title || "Dashboard"
   }
 
-  const filteredNavigation = userRole === "testers" 
+  const filteredNavigation = userRole === "testers"
     ? navigationItems.filter((item) => ["extemporaneous"].includes(item.id))
     : navigationItems
 
@@ -400,7 +397,7 @@ export default function AdminDashboard() {
             {/* Elementos decorativos */}
             <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-16 translate-x-16"></div>
-            
+
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -412,9 +409,9 @@ export default function AdminDashboard() {
                 whileHover={{ scale: 1.05, rotate: 5 }}
                 transition={{ type: "spring", stiffness: 400, damping: 10 }}
               >
-                <img 
-                  src="/logo-sao6-blanco.webp" 
-                  alt="SAO6 Logo" 
+                <img
+                  src="/logo-sao6-blanco.webp"
+                  alt="SAO6 Logo"
                   className="h-8 w-8 object-contain drop-shadow-lg"
                 />
               </motion.div>
@@ -429,7 +426,7 @@ export default function AdminDashboard() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
+            transition={{ delay: 0.3 }}
             className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 border-b border-green-200/50"
           >
             <div className="flex items-center space-x-4">
@@ -480,7 +477,7 @@ export default function AdminDashboard() {
               <Layers className="h-4 w-4" />
               <span>Navegación Principal</span>
             </motion.div>
-            
+
             {filteredNavigation.map((item, index) => (
               <motion.button
                 key={item.id}
@@ -490,8 +487,8 @@ export default function AdminDashboard() {
                 onClick={() => handleSectionChange(item.id as SectionType)}
                 className={`
                   w-full flex items-center space-x-4 px-4 py-4 rounded-2xl transition-all duration-300 group relative overflow-hidden
-                  ${activeSection === item.id 
-                    ? "bg-gradient-to-r from-green-100 via-emerald-100 to-green-100 text-green-800 shadow-lg border-2 border-green-300" 
+                  ${activeSection === item.id
+                    ? "bg-gradient-to-r from-green-100 via-emerald-100 to-green-100 text-green-800 shadow-lg border-2 border-green-300"
                     : "text-green-700 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:text-green-800"
                   }
                 `}
@@ -507,8 +504,8 @@ export default function AdminDashboard() {
 
                 <div className={`
                   p-3 rounded-xl transition-all duration-300 shadow-md relative z-10
-                  ${activeSection === item.id 
-                    ? `bg-gradient-to-r ${item.gradient} shadow-lg` 
+                  ${activeSection === item.id
+                    ? `bg-gradient-to-r ${item.gradient} shadow-lg`
                     : "bg-white group-hover:shadow-lg"
                   }
                 `}>
@@ -526,14 +523,14 @@ export default function AdminDashboard() {
                     className="relative z-10"
                   >
                     <ChevronRight className="h-5 w-5 text-green-600" />
-              </motion.div>
+                  </motion.div>
                 )}
               </motion.button>
             ))}
           </nav>
 
           {/* Footer con información del sistema */}
-              <motion.div
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
@@ -552,14 +549,14 @@ export default function AdminDashboard() {
               </div>
               <span className="font-semibold">Cerrar Sesión</span>
             </motion.button>
-              </motion.div>
+          </motion.div>
         </div>
       </motion.div>
 
       {/* Mobile Sidebar Overlay */}
       <AnimatePresence>
         {sidebarOpen && (
-        <motion.div
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -580,7 +577,7 @@ export default function AdminDashboard() {
         >
           {/* Elementos decorativos del header */}
           <div className="absolute inset-0 bg-gradient-to-r from-green-50/30 to-emerald-50/30"></div>
-          
+
           <div className="flex items-center justify-between relative z-10">
             <div className="flex items-center space-x-6">
               <button
@@ -589,20 +586,20 @@ export default function AdminDashboard() {
               >
                 <Menu className="h-6 w-6 text-green-600" />
               </button>
-                    <div>
+              <div>
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-green-800 via-emerald-700 to-green-800 bg-clip-text text-transparent">
                   {getSectionTitle()}
                 </h1>
                 <p className="text-green-600 font-medium">Panel de administración avanzado</p>
-                    </div>
-                  </div>
-            
+              </div>
+            </div>
+
             <div className="flex items-center space-x-6">
               <div className="text-right hidden md:block">
                 <p className="text-sm text-green-700 font-semibold">{currentTime}</p>
                 <p className="text-xs text-green-600">Última actualización</p>
               </div>
-              
+
               {/* Indicadores de estado */}
               <div className="flex items-center space-x-3">
                 <div className="bg-gradient-to-r from-green-100 to-emerald-100 px-4 py-2 rounded-full border border-green-200">
@@ -610,8 +607,8 @@ export default function AdminDashboard() {
                     <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
                     Sistema Activo
                   </span>
-                  </div>
-                
+                </div>
+
                 <button className="p-3 bg-white/50 rounded-xl hover:bg-white transition-colors shadow-sm">
                   <Settings className="h-5 w-5 text-green-600" />
                 </button>
@@ -622,36 +619,35 @@ export default function AdminDashboard() {
 
         {/* Content Area */}
         <main className="flex-1 overflow-y-auto p-6 relative pb-20">
-        <motion.div
-          key={activeSection}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          <motion.div
+            key={activeSection}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
             className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-green-200/50 p-8 min-h-full relative"
           >
             {/* Elementos decorativos del contenido */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-green-100/20 to-emerald-100/20 rounded-full -translate-y-32 translate-x-32 blur-2xl"></div>
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-br from-emerald-100/20 to-green-100/20 rounded-full translate-y-24 -translate-x-24 blur-2xl"></div>
-            
+
             <div className="relative z-10">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeSection}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeSection}
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
+                  transition={{ duration: 0.3 }}
                   className="h-full"
-            >
-              {activeSection === "permits" && <PermitsManagement />}
-                  {activeSection === "indicators" && <MaintenanceMessage sectionName="Indicadores" />}
-                  {activeSection === "extemporaneous" && <MaintenanceMessage sectionName="Permisos Extemporáneos" />}
-                  {activeSection === "history" && <MaintenanceMessage sectionName="Registro Histórico" />}
-                  {activeSection === "users" && <MaintenanceMessage sectionName="Gestión de Usuarios" />}
-            </motion.div>
-          </AnimatePresence>
+                >
+                  {activeSection === "permits" && <PermitsManagement />}
+                  {activeSection === "extemporaneous" && <PermitRequestForm isExtemporaneous={true} />}
+                  {activeSection === "history" && <RequestDashboard />}
+                  {activeSection === "users" && <AdminUsersModal />}
+                </motion.div>
+              </AnimatePresence>
             </div>
-        </motion.div>
+          </motion.div>
         </main>
       </div>
     </div>

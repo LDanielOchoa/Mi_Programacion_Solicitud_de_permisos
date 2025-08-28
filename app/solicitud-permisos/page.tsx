@@ -1,48 +1,46 @@
 "use client"
-
 import { Label } from "@/components/ui/label"
-
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { motion, Variants, Transition, AnimatePresence } from "framer-motion"
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react"
+import { createPortal } from "react-dom"
+import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  Loader2,
-  AlertCircle,
-  Calendar,
-  Clock,
-  FileText,
-  CheckCircle,
+import { 
+  User,
+  Car, 
+  Shield, 
+  Phone, 
+  Edit2, 
+  Calendar, 
+  Clock, 
+  FileText, 
+  Upload, 
+  X, 
+  Search, 
+  AlertCircle, 
+  Briefcase, 
+  Loader2, 
+  UserPlus, 
+  CheckCircle, 
   Info,
-  Briefcase,
-  HeartPulse,
-  Car,
+  ChevronRight,
+  Table2,
   Sun,
   Moon,
-  User,
-  Phone,
-  Shield,
-  ChevronRight,
-  List,
-  Bell,
-  Settings,
-  Table2,
-  Upload,
-  X,
+  IdCard,
+  HeartPulse,
+  type File
 } from "lucide-react"
-import { format, addDays, isSameDay, startOfWeek } from "date-fns"
+import { format, addDays, isSameDay } from "date-fns"
 import { es } from "date-fns/locale"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { toast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
-import BottomNavigation from '@/components/BottomNavigation'
+import BottomNavigation from "@/components/BottomNavigation"
 
-
-
-// Inlined UserInfoCard component
 interface UserInfoCardProps {
   code: string | undefined
   name: string | undefined
@@ -51,17 +49,9 @@ interface UserInfoCardProps {
 }
 
 const UserInfoCard: React.FC<UserInfoCardProps> = ({ code, name, phone, onPhoneEdit }) => {
-  const getInitials = (userName: string | undefined) => {
-    return userName
-      ? userName
-          .split(" ")
-          .map((part) => part[0])
-          .join("")
-          .toUpperCase()
-          .substring(0, 2)
-      : "U"
-  }
 
+
+  // Simple user info card design
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -87,7 +77,9 @@ const UserInfoCard: React.FC<UserInfoCardProps> = ({ code, name, phone, onPhoneE
           </div>
           <div className="flex items-center group cursor-pointer" onDoubleClick={onPhoneEdit}>
             <Phone className="h-4 w-4 text-green-600 mr-2" />
-            <p className="text-sm text-green-700 group-hover:underline">Teléfono: {phone || "N/A"}</p>
+            <p className="text-sm text-green-700 group-hover:underline">
+              Teléfono: {phone || "N/A"}
+            </p>
           </div>
         </div>
       </div>
@@ -107,7 +99,7 @@ const getCurrentWeekMonday = () => {
   const now = new Date()
   const day = now.getDay()
   // Si es domingo (0), retrocede 6 días, si es lunes (1), retrocede 0, etc.
-  const diff = (day === 0 ? -6 : 1 - day)
+  const diff = day === 0 ? -6 : 1 - day
   const monday = new Date(now)
   monday.setDate(now.getDate() + diff)
   monday.setHours(0, 0, 0, 0)
@@ -116,26 +108,9 @@ const getCurrentWeekMonday = () => {
 
 const isHoliday = (date: Date): { isHoliday: boolean; name: string } => {
   if (!date) return { isHoliday: false, name: "" }
-  
   const year = date.getFullYear()
   const month = date.getMonth() // 0-11
   const day = date.getDate()
-
-  // Common holidays in Colombia
-  // January 1 - New Year
-  if (month === 0 && day === 1) return { isHoliday: true, name: "Año Nuevo" }
-  // May 1 - Labor Day
-  if (month === 5 && day === 2) return { isHoliday: true, name: " Dia de la Ascensión" }
-  // June 30 - San Pedro y San Pablo
-  if (month === 6 && day === 30) return { isHoliday: true, name: "San Pedro y San Pablo" }
-  // July 20 - Independence Day
-  if (month === 6 && day === 30) return { isHoliday: true, name: "Día de la Independencia" }
-  // August 7 - Battle of Boyacá
-  if (month === 7 && day === 7) return { isHoliday: true, name: "Batalla de Boyacá" }
-  // December 8 - Immaculate Conception
-  if (month === 11 && day === 8) return { isHoliday: true, name: "Inmaculada Concepción" }
-  // December 25 - Christmas
-  if (month === 11 && day === 25) return { isHoliday: true, name: "Navidad" }
 
   return { isHoliday: false, name: "" }
 }
@@ -151,6 +126,7 @@ const getUpcomingHolidays = (dates: Date[]): Date[] => {
     upcomingDates.push(new Date(date))
     date.setDate(date.getDate() + 1)
   }
+
   return upcomingDates.filter((date) => isHoliday(date).isHoliday)
 }
 
@@ -181,23 +157,56 @@ const getCalendarDatesWithHolidays = () => {
   }
 }
 
-// Nueva función para fechas del 21 al 27 del mes actual
+// Función para fechas del 11 al 18 de agosto (incluyendo el 18 por ser festivo)
 const getFixedRangeDates = () => {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth()
-  const dates = []
-  for (let day = 21; day <= 27; day++) {
-    const date = new Date(year, month, day)
-    dates.push({
-      date,
-      formattedDate: format(date, "EEEE d 'de' MMMM", { locale: es }),
-      shortDate: format(date, "EEE d MMM", { locale: es }),
-    })
+  // El 11 de agosto de 2025 es un lunes. Month es 0-indexed, so 7 es agosto.
+  const startDate = new Date(2025, 7, 11)
+  const dates: DateInfo[] = []
+
+  // Generar fechas del 11 al 17 (7 días)
+  for (let i = 0; i < 7; i++) {
+    const date = addDays(startDate, i)
+    const formattedDate = format(date, "EEEE, d 'de' MMMM", { locale: es })
+    const shortDate = format(date, "yyyy-MM-dd", { locale: es })
+    dates.push({ date, formattedDate, shortDate })
   }
+
+  // Añadir el día 18 por ser festivo
+  const festiveDate = new Date(2025, 7, 18) // 18 de agosto
+  dates.push({
+    date: festiveDate,
+    formattedDate: format(festiveDate, "EEEE, d 'de' MMMM", { locale: es }) + " (Festivo)",
+    shortDate: format(festiveDate, "yyyy-MM-dd", { locale: es }),
+  })
+
   return {
     regularDates: dates,
-    allDates: dates,
+    upcomingHolidays: getUpcomingHolidays(dates.map((d) => d.date)),
+  }
+}
+
+// Función para fechas extemporáneas (desde hoy hasta 2 semanas adelante)
+const getExtemporaneousDates = () => {
+  const today = new Date()
+  const twoWeeksLater = addDays(today, 14)
+  const dates: DateInfo[] = []
+
+  // Generar fechas desde hoy hasta 2 semanas adelante
+  let currentDate = new Date(today)
+  while (currentDate <= twoWeeksLater) {
+    const formattedDate = format(currentDate, "EEEE, d 'de' MMMM", { locale: es })
+    const shortDate = format(currentDate, "yyyy-MM-dd", { locale: es })
+    dates.push({ 
+      date: new Date(currentDate), 
+      formattedDate, 
+      shortDate 
+    })
+    currentDate = addDays(currentDate, 1)
+  }
+
+  return {
+    regularDates: dates,
+    upcomingHolidays: getUpcomingHolidays(dates.map((d) => d.date)),
   }
 }
 
@@ -208,6 +217,7 @@ const checkExistingPermits = async (dates: string[], noveltyType: string) => {
     if (!token) {
       throw new Error("No se encontró el token de acceso")
     }
+
     const response = await fetch("https://solicitud-permisos.sao6.com.co/api/permits/check-existing-permits", {
       method: "POST",
       headers: {
@@ -216,9 +226,11 @@ const checkExistingPermits = async (dates: string[], noveltyType: string) => {
       },
       body: JSON.stringify({ dates, noveltyType }),
     })
+
     if (!response.ok) {
       throw new Error("Error al verificar permisos existentes")
     }
+
     const data = await response.json()
     return data.hasExistingPermit
   } catch (error) {
@@ -226,8 +238,6 @@ const checkExistingPermits = async (dates: string[], noveltyType: string) => {
     return false
   }
 }
-
-
 
 // Inlined useConnectionAwareSubmit hook
 interface ConnectionAwareSubmitState {
@@ -252,6 +262,7 @@ function useConnectionAwareSubmit<T, U>(
   options: ConnectionAwareSubmitOptions,
 ) {
   const { timeout, maxRetries, retryDelay, deduplicationWindow, onProgress, onConnectionIssue } = options
+
   const [state, setState] = useState<ConnectionAwareSubmitState>({
     isSubmitting: false,
     isRetrying: false,
@@ -259,6 +270,7 @@ function useConnectionAwareSubmit<T, U>(
     stage: "",
     connectionQuality: "excellent",
   })
+
   const pendingRequests = useRef(new Map<string, AbortController>())
   const lastSubmitTime = useRef(0)
 
@@ -273,6 +285,7 @@ function useConnectionAwareSubmit<T, U>(
     let quality: "excellent" | "good" | "poor" = "excellent"
     if (random < 0.1) quality = "poor"
     else if (random < 0.3) quality = "good"
+
     setState((prev) => ({ ...prev, connectionQuality: quality }))
   }, [])
 
@@ -300,9 +313,11 @@ function useConnectionAwareSubmit<T, U>(
 
       let currentRetry = 0
       let timeoutId: NodeJS.Timeout
+
       while (currentRetry <= maxRetries) {
         try {
           timeoutId = setTimeout(() => controller.abort(), timeout)
+
           const result = await submitFn(data, controller.signal)
           clearTimeout(timeoutId)
 
@@ -318,6 +333,7 @@ function useConnectionAwareSubmit<T, U>(
           return result
         } catch (error: any) {
           clearTimeout(timeoutId) // Ensure timeout is cleared on error too
+
           if (controller.signal.aborted) {
             onConnectionIssue?.("La solicitud ha excedido el tiempo límite.")
             setState((prev) => ({ ...prev, stage: "Tiempo de espera agotado" }))
@@ -354,6 +370,7 @@ function useConnectionAwareSubmit<T, U>(
           }
         }
       }
+
       // Should not reach here, but for type safety
       return Promise.reject(new Error("Submission failed after retries"))
     },
@@ -382,15 +399,340 @@ function useConnectionAwareSubmit<T, U>(
 }
 
 // 1. Importar el hook useUserData
-import useUserData from '../hooks/useUserData'
+import useUserData from "../hooks/useUserData"
 
-export default function PermitRequestForm() {
+// Helper function to get user initials
+const getInitials = (userName: string | undefined) => {
+  return userName
+    ? userName
+        .split(" ")
+        .map((part) => part[0])
+        .join("")
+        .toUpperCase()
+        .substring(0, 2)
+    : "U"
+}
+
+// Employee Selection Dialog Interfaces
+interface Employee {
+  cedula: string;
+  nombre: string;
+  cargo: string;
+  foto?: string;
+}
+
+interface EmployeeSelectionDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  employees: Employee[];
+  employeesLoading: boolean;
+  onEmployeeSelect: (employee: Employee) => void;
+}
+
+// Animation variants for the employee selection dialog
+const modalVariants = {
+  hidden: { 
+    opacity: 0,
+    backdropFilter: "blur(0px)"
+  },
+  visible: { 
+    opacity: 1,
+    backdropFilter: "blur(8px)",
+    transition: {
+      duration: 0.3,
+      ease: [0.25, 0.46, 0.45, 0.94]
+    }
+  },
+  exit: { 
+    opacity: 0,
+    backdropFilter: "blur(0px)",
+    transition: { duration: 0.2 }
+  }
+};
+
+const modalContentVariants = {
+  hidden: {
+    scale: 0.9,
+    opacity: 0,
+    y: 20
+  },
+  visible: {
+    scale: 1,
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.4,
+      ease: [0.25, 0.46, 0.45, 0.94],
+      staggerChildren: 0.05
+    }
+  },
+  exit: {
+    scale: 0.95,
+    opacity: 0,
+    y: 10,
+    transition: { duration: 0.2 }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.3, ease: "easeOut" }
+  }
+};
+
+const employeeCardVariants = {
+  hover: { 
+    scale: 1.02,
+    y: -2,
+    transition: { 
+      type: "spring", 
+      stiffness: 400, 
+      damping: 25 
+    }
+  },
+  tap: { 
+    scale: 0.98,
+    transition: { duration: 0.1 }
+  }
+};
+
+// Employee Selection Dialog Component
+const EmployeeSelectionDialog: React.FC<EmployeeSelectionDialogProps> = ({
+  isOpen,
+  onClose,
+  employees,
+  employeesLoading,
+  onEmployeeSelect
+}) => {
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const filteredEmployees = employees.filter(employee =>
+    (employee.nombre && employee.nombre.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (employee.cedula && employee.cedula.includes(searchTerm)) ||
+    (employee.cargo && employee.cargo.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  if (!mounted) return null;
+
+  return createPortal(
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          variants={modalVariants}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+          className="fixed inset-0 bg-green-950/30 backdrop-blur-sm flex items-center justify-center p-2"
+          style={{ willChange: "opacity, backdrop-filter", zIndex: 99999 }}
+        >
+          <motion.div
+            variants={modalContentVariants}
+            className="bg-white rounded-2xl shadow-[0_25px_50px_rgba(0,0,0,0.15)] max-w-5xl w-full max-h-[92vh] overflow-hidden relative border border-green-100/50"
+            style={{ willChange: "transform" }}
+          >
+            {/* Close button */}
+            <motion.button
+              onClick={onClose}
+              className="absolute top-4 right-4 w-10 h-10 bg-white hover:bg-green-50 rounded-full flex items-center justify-center transition-all duration-200 shadow-md hover:shadow-lg border border-green-100 z-10 group"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <X className="h-5 w-5 text-green-600 group-hover:text-green-700 transition-colors" />
+            </motion.button>
+
+            {/* Header */}
+            <motion.div 
+              variants={itemVariants}
+              className="bg-gradient-to-r from-green-600 to-green-700 px-8 py-6 text-white"
+            >
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                  <User className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold">Seleccionar Empleado</h2>
+                  <p className="text-green-100 text-sm">Elige un empleado de la lista</p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Search bar */}
+            <motion.div variants={itemVariants} className="p-6 border-b border-green-100">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-green-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre, cédula o cargo..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-green-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 bg-green-50/50"
+                />
+              </div>
+            </motion.div>
+
+            {/* Content */}
+            <div className="p-6">
+              {employeesLoading ? (
+                <motion.div 
+                  variants={itemVariants}
+                  className="text-center py-12"
+                >
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+                  </div>
+                  <p className="text-green-600 font-medium">Cargando empleados...</p>
+                  <p className="text-green-400 text-sm mt-1">Por favor espera un momento</p>
+                </motion.div>
+              ) : (
+                <motion.div variants={itemVariants}>
+                  {filteredEmployees.length === 0 ? (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <User className="h-8 w-8 text-green-400" />
+                      </div>
+                      <p className="text-green-600 font-medium">
+                        {searchTerm ? 'No se encontraron empleados' : 'No hay empleados disponibles'}
+                      </p>
+                      <p className="text-green-400 text-sm mt-1">
+                        {searchTerm ? 'Intenta con otros términos de búsqueda' : 'Agrega empleados al sistema'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="max-h-96 overflow-y-auto space-y-3 pr-2">
+                      {filteredEmployees.map((employee, index) => (
+                        <motion.div
+                          key={`${employee.cedula || 'empty'}-${index}`}
+                          variants={employeeCardVariants}
+                          whileHover="hover"
+                          whileTap="tap"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ 
+                            opacity: 1, 
+                            y: 0,
+                            transition: { delay: index * 0.05 }
+                          }}
+                          className="cursor-pointer group"
+                          onClick={() => onEmployeeSelect(employee)}
+                        >
+                          <div className="bg-gradient-to-r from-green-50 to-white border border-green-200/60 rounded-xl p-4 hover:shadow-lg transition-all duration-300 relative overflow-hidden">
+                            {/* Decorative gradient */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                            
+                            <div className="flex items-center space-x-4 relative">
+                              {/* Photo placeholder */}
+                              <Avatar className="w-16 h-16 shadow-md group-hover:scale-105 transition-transform duration-200">
+                                <AvatarImage 
+                                  src={employee.foto} 
+                                  alt={employee.nombre}
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                                <AvatarFallback className="bg-gradient-to-br from-green-500 to-green-600 text-white text-lg font-bold">
+                                  {getInitials(employee.nombre)}
+                                </AvatarFallback>
+                              </Avatar>
+
+                              {/* Employee info */}
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-bold text-green-800 text-lg truncate group-hover:text-green-900 transition-colors">
+                                  {employee.nombre}
+                                </h3>
+                                
+                                <div className="flex items-center space-x-4 mt-2">
+                                  <div className="flex items-center space-x-2 text-green-600">
+                                    <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
+                                      <IdCard className="h-3 w-3 text-green-600" />
+                                    </div>
+                                    <span className="text-sm font-medium">{employee.cedula}</span>
+                                  </div>
+                                  
+                                  <div className="flex items-center space-x-2 text-green-600">
+                                    <div className="w-5 h-5 bg-green-100 rounded-full flex items-center justify-center">
+                                      <Briefcase className="h-3 w-3 text-green-600" />
+                                    </div>
+                                    <span className="text-sm font-medium truncate">{employee.cargo}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Arrow indicator */}
+                              <div className="text-green-400 group-hover:text-green-600 transition-colors">
+                                <div className="w-8 h-8 bg-green-100 group-hover:bg-green-200 rounded-full flex items-center justify-center transition-colors duration-200">
+                                  <motion.div
+                                    className="w-4 h-4 border-r-2 border-b-2 border-current transform rotate-[-45deg]"
+                                    whileHover={{ x: 2 }}
+                                    transition={{ duration: 0.2 }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Bottom gradient line */}
+                            <div className="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-transparent via-green-400 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <motion.div 
+              variants={itemVariants}
+              className="px-6 py-4 bg-green-50/50 border-t border-green-100"
+            >
+              <p className="text-center text-green-600 text-sm">
+                {filteredEmployees.length > 0 && !employeesLoading && (
+                  `${filteredEmployees.length} empleado${filteredEmployees.length !== 1 ? 's' : ''} ${searchTerm ? 'encontrado' + (filteredEmployees.length !== 1 ? 's' : '') : 'disponible' + (filteredEmployees.length !== 1 ? 's' : '')}`
+                )}
+              </p>
+            </motion.div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>,
+    document.body
+  );
+};
+
+// Interfaz para archivos con información adicional
+interface FileWithInfo {
+  file: File
+  id: string
+  preview?: string
+  error?: string
+  isUploading?: boolean
+  uploadProgress?: number
+  uploadStatus?: "pending" | "uploading" | "completed" | "error"
+  fileSize?: string
+  fileType?: string
+}
+
+interface PermitRequestFormProps {
+  isExtemporaneous?: boolean
+}
+
+export default function PermitRequestForm({ isExtemporaneous = false }: PermitRequestFormProps) {
   const router = useRouter()
   // 2. Usar el hook para obtener los datos reales del usuario
   const { userData, isLoading, error, fetchUserData } = useUserData()
+
+
   // 3. Eliminar el estado simulado de usuario
   // const [userData, setUserData] = useState({ name: "", code: "", phone: "" })
   // const [isLoading, setIsLoading] = useState(true)
+
   const [isSuccess, setIsSuccess] = useState(false)
   const [noveltyType, setNoveltyType] = useState("")
   const [selectedDates, setSelectedDates] = useState<Date[]>([])
@@ -403,13 +745,287 @@ export default function PermitRequestForm() {
   const [errorMessage, setErrorMessage] = useState("") // For new error modal
   const [isErrorModalOpen, setIsErrorModalOpen] = useState(false) // For new error modal
   const [isTypeDialogOpen, setIsTypeDialogOpen] = useState(false) // State for novelty type selection dialog
+  const [selectedSubpolitica, setSelectedSubpolitica] = useState("") // State for subpolicy selection
+  const [isSubpoliticaDialogOpen, setIsSubpoliticaDialogOpen] = useState(false) // State for subpolicy dialog
+  const [subpoliticaSearchTerm, setSubpoliticaSearchTerm] = useState("") // State for subpolicy search
+
+  // Estados para archivos
+  const [uploadedFiles, setUploadedFiles] = useState<FileWithInfo[]>([])
+  const [isDragOver, setIsDragOver] = useState(false)
+
   const phoneInputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   const [weekDates, setWeekDates] = useState<DateInfo[]>([])
   const [existingPermitDates, setExistingPermitDates] = useState<string[]>([])
   const [timeValue, setTimeValue] = useState("")
   const [descriptionValue, setDescriptionValue] = useState("")
 
+  // Constantes para validación de archivos
+  const MAX_FILES = 5
+  const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+  const ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
+  const ALLOWED_EXTENSIONS = [".pdf", ".jpg", ".jpeg", ".png"]
 
+  // Función mejorada para validar archivos
+  const validateFile = (file: File): string | null => {
+    // Validar que el archivo existe
+    if (!file) {
+      return "Archivo no válido"
+    }
+
+    // Validar tamaño
+    if (file.size > MAX_FILE_SIZE) {
+      return `El archivo "${file.name}" excede el tamaño máximo de 10MB`
+    }
+
+    // Validar que el archivo no esté vacío
+    if (file.size === 0) {
+      return `El archivo "${file.name}" está vacío`
+    }
+
+    // Validar tipo MIME
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      // Validar extensión como respaldo
+      const fileExtension = "." + file.name.split(".").pop()?.toLowerCase()
+      if (!ALLOWED_EXTENSIONS.includes(fileExtension)) {
+        return `El archivo "${file.name}" no es un tipo válido. Solo se permiten PDF, JPG, JPEG y PNG`
+      }
+    }
+
+    // Validar nombre del archivo
+    if (file.name.length > 100) {
+      return `El nombre del archivo "${file.name}" es demasiado largo`
+    }
+
+    // Validar caracteres especiales en el nombre
+    const invalidChars = /[<>:"/\\|?*]/
+    if (invalidChars.test(file.name)) {
+      return `El nombre del archivo "${file.name}" contiene caracteres no permitidos`
+    }
+
+    return null
+  }
+
+  // Función mejorada para generar preview de archivos
+  const generateFilePreview = (file: File): Promise<string | undefined> => {
+    return new Promise((resolve) => {
+      if (file.type.startsWith("image/")) {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          const result = e.target?.result as string
+          // Validar que el resultado sea válido
+          if (result && result.startsWith("data:")) {
+            resolve(result)
+          } else {
+            resolve(undefined)
+          }
+        }
+        reader.onerror = () => {
+          console.warn("Error al generar preview para:", file.name)
+          resolve(undefined)
+        }
+        reader.readAsDataURL(file)
+      } else {
+        resolve(undefined)
+      }
+    })
+  }
+
+  // Función para formatear tamaño de archivo
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return "0 Bytes"
+    const k = 1024
+    const sizes = ["Bytes", "KB", "MB", "GB"]
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
+  }
+
+  // Función mejorada para manejar la carga de archivos
+  const handleFileUpload = async (files: FileList | File[]) => {
+    const fileArray = Array.from(files)
+
+    // Verificar límite de archivos
+    if (uploadedFiles.length + fileArray.length > MAX_FILES) {
+      setErrorMessage(
+        `Solo se pueden cargar hasta ${MAX_FILES} archivos. Actualmente tienes ${uploadedFiles.length} archivo(s).`,
+      )
+      setIsErrorModalOpen(true)
+      return
+    }
+
+    const newFiles: FileWithInfo[] = []
+
+    for (const file of fileArray) {
+      const fileId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      const validationError = validateFile(file)
+
+      if (validationError) {
+        newFiles.push({
+          file,
+          id: fileId,
+          error: validationError,
+          isUploading: false,
+          uploadStatus: "error",
+          fileSize: formatFileSize(file.size),
+          fileType: file.type || "unknown",
+        })
+      } else {
+        try {
+          // Archivo válido, generar preview
+          const preview = await generateFilePreview(file)
+          newFiles.push({
+            file,
+            id: fileId,
+            preview,
+            isUploading: false,
+            uploadStatus: "pending",
+            uploadProgress: 0,
+            fileSize: formatFileSize(file.size),
+            fileType: file.type || "unknown",
+          })
+        } catch (error) {
+          console.error("Error procesando archivo:", file.name, error)
+          newFiles.push({
+            file,
+            id: fileId,
+            error: `Error al procesar el archivo "${file.name}"`,
+            isUploading: false,
+            uploadStatus: "error",
+            fileSize: formatFileSize(file.size),
+            fileType: file.type || "unknown",
+          })
+        }
+      }
+    }
+
+    setUploadedFiles((prev) => [...prev, ...newFiles])
+
+    // Mostrar notificación de archivos cargados
+    const validFiles = newFiles.filter((f) => !f.error).length
+    const errorFiles = newFiles.filter((f) => f.error).length
+
+    if (validFiles > 0) {
+      toast({
+        title: "Archivos cargados",
+        description: `${validFiles} archivo(s) cargado(s) exitosamente${errorFiles > 0 ? `, ${errorFiles} con errores` : ""}`,
+        variant: errorFiles > 0 ? "destructive" : "default",
+      })
+    }
+  }
+
+  // Función mejorada para remover archivo
+  const removeFile = (fileId: string) => {
+    setUploadedFiles((prev) => {
+      const fileToRemove = prev.find((f) => f.id === fileId)
+      if (fileToRemove) {
+        // Limpiar preview si existe
+        if (fileToRemove.preview && fileToRemove.preview.startsWith("data:")) {
+          URL.revokeObjectURL(fileToRemove.preview)
+        }
+      }
+      return prev.filter((f) => f.id !== fileId)
+    })
+  }
+
+  // Función para limpiar todos los archivos
+  const clearAllFiles = () => {
+    setUploadedFiles((prev) => {
+      // Limpiar todos los previews
+      prev.forEach((fileInfo) => {
+        if (fileInfo.preview && fileInfo.preview.startsWith("data:")) {
+          URL.revokeObjectURL(fileInfo.preview)
+        }
+      })
+      return []
+    })
+  }
+
+  // Función mejorada para manejar drag and drop
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(false)
+
+    const files = e.dataTransfer.files
+    if (files.length > 0) {
+      handleFileUpload(files)
+    }
+  }
+
+  // Función para abrir selector de archivos
+  const openFileSelector = () => {
+    fileInputRef.current?.click()
+  }
+
+  // Función para verificar conectividad
+  const checkConnectivity = async (): Promise<boolean> => {
+    try {
+      const response = await fetch("https://solicitud-permisos.sao6.com.co/api/health", {
+        method: "HEAD",
+        mode: "no-cors",
+      })
+      return true
+    } catch (error) {
+      console.warn("⚠️ Problema de conectividad detectado:", error)
+      return false
+    }
+  }
+
+  // Función para validar archivos antes del envío
+  const validateFilesBeforeSubmit = useCallback(async (): Promise<boolean> => {
+    const filesWithErrors = uploadedFiles.filter((f) => f.error)
+    const validFiles = uploadedFiles.filter((f) => !f.error)
+
+    if (filesWithErrors.length > 0) {
+      setErrorMessage("Hay archivos con errores que deben ser corregidos antes de enviar la solicitud.")
+      setIsErrorModalOpen(true)
+      return false
+    }
+
+    // Verificar conectividad si hay archivos grandes
+    const totalSize = validFiles.reduce((sum, f) => sum + f.file.size, 0)
+    const largeFileThreshold = 5 * 1024 * 1024 // 5MB
+
+    if (totalSize > largeFileThreshold) {
+      const isConnected = await checkConnectivity()
+      if (!isConnected) {
+        setErrorMessage(
+          "Se detectó un problema de conectividad. Los archivos son grandes y requieren una conexión estable.",
+        )
+        setIsErrorModalOpen(true)
+        return false
+      }
+    }
+
+    return true
+  }, [uploadedFiles])
+
+  // Limpiar archivos cuando cambie el tipo de novedad
+  useEffect(() => {
+    if (noveltyType !== "cita" && noveltyType !== "audiencia") {
+      clearAllFiles()
+    }
+  }, [noveltyType])
+
+  // Limpiar archivos cuando se desmonte el componente
+  useEffect(() => {
+    return () => {
+      clearAllFiles()
+    }
+  }, [])
 
   // Memoized functions for connection aware submit hook
   const handleProgress = useCallback((stage: string) => {
@@ -427,16 +1043,18 @@ export default function PermitRequestForm() {
   const submitFunction = useCallback(async (data: any, signal: AbortSignal) => {
     const response = await fetch("https://solicitud-permisos.sao6.com.co/api/permits/permit-request", {
       method: "POST",
-        headers: {
+      headers: {
         Authorization: `Bearer ${data.token}`,
       },
       body: data.formData,
       signal,
     })
-      if (!response.ok) {
+
+    if (!response.ok) {
       const errorData = await response.json()
       throw new Error(`Error al enviar la solicitud: ${errorData.detail || response.statusText}`)
     }
+
     return response.json()
   }, [])
 
@@ -449,38 +1067,6 @@ export default function PermitRequestForm() {
     onProgress: handleProgress,
     onConnectionIssue: handleConnectionIssue,
   })
-
-
-
-  // 4. Eliminar el useEffect que simulaba la carga de usuario
-  // useEffect(() => {
-  //   const fetchUserData = async () => {
-  //     try {
-  //       setTimeout(() => {
-  //         const token = localStorage.getItem("accessToken")
-  //         if (token) {
-  //           // Simulate API call
-  //           setUserData({
-  //             name: "Carlos Rodríguez",
-  //             code: "CR-2023",
-  //             phone: "3001234567",
-  //           })
-  //         } else {
-  //           setUserData({
-  //             name: "Carlos Rodríguez",
-  //             code: "CR-2023",
-  //             phone: "3001234567",
-  //           })
-  //         }
-  //         setIsLoading(false)
-  //       }, 1200)
-  //   } catch (error) {
-  //     console.error("Error fetching user data:", error)
-  //     setIsLoading(false)
-  //   }
-  //   }
-  //   fetchUserData()
-  // }, [])
 
   useEffect(() => {
     const { regularDates } = getFixedRangeDates()
@@ -499,7 +1085,7 @@ export default function PermitRequestForm() {
         return
       }
 
-      const allDates = weekDates.map(date => format(date.date, "yyyy-MM-dd"))
+      const allDates = weekDates.map((date) => format(date.date, "yyyy-MM-dd"))
       const response = await fetch("https://solicitud-permisos.sao6.com.co/api/permits/check-existing-permits", {
         method: "POST",
         headers: {
@@ -535,10 +1121,13 @@ export default function PermitRequestForm() {
       if (!token) {
         throw new Error("No se encontró el token de acceso")
       }
+
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000))
+
       // Aquí deberías actualizar el teléfono en el backend y luego refrescar los datos:
       await fetchUserData() // Refresca los datos reales del usuario
+
       setIsPhoneDialogOpen(false)
       setIsSuccess(true)
       setTimeout(() => setIsSuccess(false), 3000)
@@ -559,9 +1148,11 @@ export default function PermitRequestForm() {
     // Verificar si ya existe un permiso para esta fecha
     const formattedDate = format(date, "yyyy-MM-dd")
     const hasExistingPermit = await checkExistingPermits([formattedDate], noveltyType)
-    
+
     if (hasExistingPermit) {
-      setErrorMessage(`Ya existe una solicitud de permiso para la fecha ${format(date, "dd/MM/yyyy")}. No puede seleccionar esta fecha.`)
+      setErrorMessage(
+        `Ya existe una solicitud de permiso para la fecha ${format(date, "dd/MM/yyyy")}. No puede seleccionar esta fecha.`,
+      )
       setIsErrorModalOpen(true)
       return
     }
@@ -569,35 +1160,39 @@ export default function PermitRequestForm() {
     setSelectedDates((prev) => {
       const isAlreadySelected = prev.some((d) => isSameDay(d, date))
       let newDates
+
       if (["audiencia", "cita", "diaAM", "diaPM", "tablaPartida"].includes(noveltyType)) {
         newDates = isAlreadySelected ? [] : [date]
       } else {
         newDates = isAlreadySelected ? prev.filter((d) => !isSameDay(d, date)) : [...prev, date]
+
         if (newDates.length >= 2 && noveltyType === "descanso") {
           setIsConfirmationDialogOpen(true)
         }
+
         if (noveltyType === "licencia" && newDates.length === 3 && !hasShownLicenseNotification) {
           setIsLicenseNotificationOpen(true)
           setHasShownLicenseNotification(true)
         }
       }
+
       return newDates
     })
   }
 
-  const validateSubmission = useCallback(() => {
+  const validateSubmission = useCallback(async () => {
     // Registro detallado del estado actual antes de la validación
     console.log("🔒 Validación de envío:", {
       userData: {
         code: userData?.code,
         name: userData?.name,
-        phone: userData?.phone
+        phone: userData?.phone,
       },
       noveltyType,
-      selectedDates: selectedDates.map(date => format(date, "yyyy-MM-dd")),
+      selectedDates: selectedDates.map((date) => format(date, "yyyy-MM-dd")),
       isSubmitting: connectionAwareSubmit.state.isSubmitting,
-      descriptionValue, // <-- Log para depuración
-
+      descriptionValue,
+      uploadedFiles: uploadedFiles.length,
     })
 
     // Validaciones de datos de usuario
@@ -622,14 +1217,18 @@ export default function PermitRequestForm() {
       return false
     }
 
-
+    // Validación de archivos usando la nueva función (ahora asíncrona)
+    const filesValid = await validateFilesBeforeSubmit()
+    if (!filesValid) {
+      return false
+    }
 
     // Validaciones específicas para tipos de novedad
     const specificTypeValidations = {
-      "cita": () => !timeValue ? "Debe indicar la hora de la cita." : null,
-      "audiencia": () => !timeValue ? "Debe indicar la hora de la audiencia." : null,
-      "licencia": () => !descriptionValue.trim() ? "Debe proporcionar una descripción para la licencia." : null,
-      "descanso": () => !descriptionValue.trim() ? "Debe explicar el motivo del descanso." : null,
+      cita: () => (!timeValue ? "Debe indicar la hora de la cita." : null),
+      audiencia: () => (!timeValue ? "Debe indicar la hora de la audiencia." : null),
+      licencia: () => (!descriptionValue.trim() ? "Debe proporcionar una descripción para la licencia." : null),
+      descanso: () => (!descriptionValue.trim() ? "Debe explicar el motivo del descanso." : null),
     }
 
     // Ejecutar validación específica si existe para el tipo de novedad
@@ -644,21 +1243,30 @@ export default function PermitRequestForm() {
     }
 
     return true
-  }, [userData, noveltyType, selectedDates, connectionAwareSubmit.state.isSubmitting, timeValue, descriptionValue])
+  }, [
+    userData,
+    noveltyType,
+    selectedDates,
+    connectionAwareSubmit.state.isSubmitting,
+    timeValue,
+    descriptionValue,
+    uploadedFiles,
+    validateFilesBeforeSubmit,
+  ])
 
   const handleSubmit = async (e: React.FormEvent) => {
     // Prevenir comportamientos por defecto de manera estricta
     e.preventDefault()
     e.stopPropagation()
-    
+
     // Bloquear cualquier intento de envío si ya hay un envío en progreso
     if (connectionAwareSubmit.state.isSubmitting) {
       console.warn("⚠️ Intento de envío bloqueado: Solicitud en progreso")
       return
     }
 
-    // Validación exhaustiva antes del envío
-    const isValid = validateSubmission()
+    // Validación exhaustiva antes del envío (ahora asíncrona)
+    const isValid = await validateSubmission()
     if (!isValid) {
       console.error("❌ Validación fallida. Envío cancelado.")
       return
@@ -668,29 +1276,55 @@ export default function PermitRequestForm() {
       // Check for existing permits
       const formattedDates = selectedDates.map((date) => format(date, "yyyy-MM-dd"))
       const hasExistingPermit = await checkExistingPermits(formattedDates, noveltyType)
-      if (hasExistingPermit && ["descanso", "cita", "licencia", "audiencia", "diaAM", "diaPM", "tablaPartida"].includes(noveltyType)) {
-          setErrorMessage("Ya existe un permiso para una o más de las fechas seleccionadas. No se puede realizar esta solicitud.")
-          setIsErrorModalOpen(true)
+
+      if (
+        hasExistingPermit &&
+        ["descanso", "cita", "licencia", "audiencia", "diaAM", "diaPM", "tablaPartida"].includes(noveltyType)
+      ) {
+        setErrorMessage(
+          "Ya existe un permiso para una o más de las fechas seleccionadas. No se puede realizar esta solicitud.",
+        )
+        setIsErrorModalOpen(true)
         return
       }
 
-      
       // Create FormData with FINAL validation
+      console.log("🔍 Debug - userData completo:", userData)
+      console.log("🔍 Debug - noveltyType:", noveltyType)
+      console.log("🔍 Debug - selectedSubpolitica:", selectedSubpolitica)
+      
+      const finalUserData = {
+        code: userData?.code || userData?.cedula,
+        name: userData?.name || (userData as any)?.nombre,     
+        phone: userData?.phone || (userData as any)?.telefono, 
+      }
+      
+      console.log("🔍 Debug - finalUserData:", finalUserData)
+      
       const dataToSend = {
-        code: userData.code,
-        name: userData.name,
-        phone: userData.phone,
+        code: finalUserData.code,
+        name: finalUserData.name,
+        phone: finalUserData.phone,
         dates: formattedDates,
-        noveltyType: noveltyType,
+        noveltyType: noveltyType === "subpolitica" ? selectedSubpolitica : noveltyType,
         time: timeValue,
         description: descriptionValue,
       }
+
       console.log("📦 Datos finales a enviar:", dataToSend)
 
-      // Verify no critical empty fields
-      if (!dataToSend.code || !dataToSend.name || !dataToSend.noveltyType) {
-        console.error("❌ DATOS CRÍTICOS VACÍOS DETECTADOS")
-        setErrorMessage("Error crítico: Datos esenciales faltantes. No se puede enviar la solicitud.")
+      // Verify no critical empty fields with better error messages
+      const missingFields = []
+      if (!dataToSend.code) missingFields.push("código de usuario")
+      if (!dataToSend.name) missingFields.push("nombre")
+      if (!dataToSend.noveltyType) missingFields.push("tipo de novedad")
+      
+      if (missingFields.length > 0) {
+        console.error("❌ DATOS CRÍTICOS VACÍOS DETECTADOS:", missingFields)
+        console.error("❌ userData original:", userData)
+        console.error("❌ noveltyType:", noveltyType)
+        console.error("❌ selectedSubpolitica:", selectedSubpolitica)
+        setErrorMessage(`Error crítico: Faltan los siguientes datos esenciales: ${missingFields.join(', ')}. Por favor, verifica tu información de usuario y selecciona un tipo de novedad.`)
         setIsErrorModalOpen(true)
         return
       }
@@ -704,7 +1338,46 @@ export default function PermitRequestForm() {
       formData.append("time", dataToSend.time)
       formData.append("description", descriptionValue)
 
+      // Agregar archivos al FormData con mejor manejo
+      const validFiles = uploadedFiles.filter((fileInfo) => !fileInfo.error)
+      console.log("📁 Archivos válidos a enviar:", validFiles.length)
 
+      validFiles.forEach((fileInfo, index) => {
+        try {
+          // Agregar el archivo con un nombre más descriptivo
+          const fileExtension = fileInfo.file.name.split(".").pop()
+          const fileName = `${fileInfo.file.name}`
+
+          formData.append(`files`, fileInfo.file, fileName)
+
+          // Agregar metadatos del archivo
+          formData.append(
+            `file_metadata_${index}`,
+            JSON.stringify({
+              originalName: fileInfo.file.name,
+              size: fileInfo.file.size,
+              type: fileInfo.file.type,
+              uploadTime: new Date().toISOString(),
+            }),
+          )
+
+          console.log(`📎 Archivo ${index + 1} agregado:`, fileName, `(${formatFileSize(fileInfo.file.size)})`)
+        } catch (error) {
+          console.error(`❌ Error agregando archivo ${index + 1}:`, error)
+          throw new Error(`Error al preparar el archivo "${fileInfo.file.name}" para envío`)
+        }
+      })
+
+      // Agregar información de resumen de archivos
+      formData.append(
+        "files_summary",
+        JSON.stringify({
+          totalFiles: validFiles.length,
+          totalSize: validFiles.reduce((sum, f) => sum + f.file.size, 0),
+          fileTypes: validFiles.map((f) => f.file.type),
+          uploadTimestamp: new Date().toISOString(),
+        }),
+      )
 
       const token = localStorage.getItem("accessToken")
       if (!token) {
@@ -714,23 +1387,24 @@ export default function PermitRequestForm() {
       // USE THE SMART CONNECTION HOOK
       console.log("📤 Enviando con protección contra duplicados...")
       const result = await connectionAwareSubmit.submit({ formData, token })
-      console.log("✅ Solicitud enviada exitosamente:", result)
 
+      console.log("✅ Solicitud enviada exitosamente:", result)
       setIsSuccess(true)
-      
+
       // Safely reset the form
       try {
-      // const form = e.target as HTMLFormElement
-      // form.reset() // NO limpiar el formulario así, solo limpiar los estados controlados
+        // const form = e.target as HTMLFormElement
+        // form.reset() // NO limpiar el formulario así, solo limpiar los estados controlados
       } catch (resetError) {
         console.warn("Advertencia al resetear formulario:", resetError)
       }
+
       setSelectedDates([])
       setNoveltyType("")
       setHasShownLicenseNotification(false)
       setTimeValue("")
       setDescriptionValue("") // Limpiar aquí después de éxito
-
+      setUploadedFiles([]) // Limpiar archivos
 
       // Auto-hide success message
       setTimeout(() => {
@@ -752,76 +1426,409 @@ export default function PermitRequestForm() {
     setIsConfirmationDialogOpen(false)
   }
 
-  // Actualizar el diseño de las opciones de novedad
-  const noveltyOptions = [
+  // Opciones de novedad según el tipo de usuario
+  const getNoveltyOptions = () => {
+    // Novedades para personal de mantenimiento
+    if (userData?.userType === "se_maintenance") {
+      return [
+        {
+          id: "cumpleanos",
+          label: "Cumpleaños",
+          description: "Celebración de cumpleaños",
+          icon: User,
+          color: "bg-green-50",
+          iconColor: "text-green-600",
+          iconBg: "bg-green-100",
+        },
+        {
+          id: "cita",
+          label: "Cita médica",
+          description: "Para asistir a citas médicas",
+          icon: HeartPulse,
+          color: "bg-cyan-50",
+          iconColor: "text-cyan-600",
+          iconBg: "bg-cyan-100",
+        },
+        {
+          id: "descanso",
+          label: "Descanso",
+          description: "Para un día de descanso",
+          icon: Sun,
+          color: "bg-green-50",
+          iconColor: "text-green-600",
+          iconBg: "bg-green-100",
+        },
+        {
+          id: "licenciaMaternidad",
+          label: "Licencia de maternidad",
+          description: "Se debe adjuntar el documento soporte",
+          icon: HeartPulse,
+          color: "bg-pink-50",
+          iconColor: "text-pink-600",
+          iconBg: "bg-pink-100",
+        },
+        {
+          id: "licenciaPaternidad",
+          label: "Licencia de paternidad",
+          description: "Se debe adjuntar el documento soporte",
+          icon: User,
+          color: "bg-green-50",
+          iconColor: "text-green-600",
+          iconBg: "bg-green-100",
+        },
+        {
+          id: "calamidad",
+          label: "Calamidad",
+          description: "Para situaciones de calamidad",
+          icon: AlertCircle,
+          color: "bg-red-50",
+          iconColor: "text-red-600",
+          iconBg: "bg-red-100",
+        },
+        {
+          id: "cambioTurno",
+          label: "Cambio de turno",
+          description: "Para solicitar cambio de turno",
+          icon: Clock,
+          color: "bg-orange-50",
+          iconColor: "text-orange-600",
+          iconBg: "bg-orange-100",
+        },
+        {
+          id: "vacaciones",
+          label: "Vacaciones",
+          description: "Solicitud de vacaciones",
+          icon: Sun,
+          color: "bg-yellow-50",
+          iconColor: "text-yellow-600",
+          iconBg: "bg-yellow-100",
+        },
+        {
+          id: "tramitesLegales",
+          label: "Trámites legales",
+          description: "Para realizar trámites legales",
+          icon: FileText,
+          color: "bg-gray-50",
+          iconColor: "text-gray-600",
+          iconBg: "bg-gray-100",
+        },
+        {
+          id: "subpolitica",
+          label: "Deseo de laborar en alguna Sub política",
+          description: "Seleccionar subpolítica específica",
+          icon: Briefcase,
+          color: "bg-green-50",
+          iconColor: "text-green-600",
+          iconBg: "bg-green-100",
+        },
+        {
+          id: "educacion",
+          label: "Educación",
+          description: "Entrega de notas, reuniones escolares, evaluaciones",
+          icon: FileText,
+          color: "bg-emerald-50",
+          iconColor: "text-emerald-600",
+          iconBg: "bg-emerald-100",
+        },
+        {
+          id: "permisoEstudiar",
+          label: "Permiso para estudiar",
+          description: "Anexar soportes y cumplir requerimientos de SAO6",
+          icon: FileText,
+          color: "bg-teal-50",
+          iconColor: "text-teal-600",
+          iconBg: "bg-teal-100",
+        },
+        {
+          id: "viaje",
+          label: "Viaje",
+          description: "Para realizar viajes",
+          icon: Car,
+          color: "bg-violet-50",
+          iconColor: "text-violet-600",
+          iconBg: "bg-violet-100",
+        },
+        {
+          id: "licencia",
+          label: "Licencia no remunerada",
+          description: "Solicitud de días sin remuneración",
+          icon: Briefcase,
+          color: "bg-stone-50",
+          iconColor: "text-stone-600",
+          iconBg: "bg-stone-100",
+        },
+      ]
+    }
+
+    // Novedades para usuarios regulares (existentes)
+    return [
+      {
+        id: "descanso",
+        label: "Descanso",
+        description: "Para un día de descanso",
+        icon: Sun,
+        color: "bg-green-50",
+        iconColor: "text-green-600",
+        iconBg: "bg-green-100",
+      },
+      {
+        id: "licencia",
+        label: "Licencia no remunerada",
+        description: "Solicitud de días sin remuneración",
+        icon: Briefcase,
+        color: "bg-emerald-50",
+        iconColor: "text-emerald-600",
+        iconBg: "bg-emerald-100",
+      },
+      {
+        id: "audiencia",
+        label: "Audiencia o curso de tránsito",
+        description: "Para asistir a audiencias o cursos",
+        icon: Car,
+        color: "bg-teal-50",
+        iconColor: "text-teal-600",
+        iconBg: "bg-teal-100",
+      },
+      {
+        id: "cita",
+        label: "Cita médica",
+        description: "Para asistir a citas médicas",
+        icon: HeartPulse,
+        color: "bg-cyan-50",
+        iconColor: "text-cyan-600",
+        iconBg: "bg-cyan-100",
+      },
+      {
+        id: "tablaPartida",
+        label: "Tabla Partida",
+        description: "Para la jornada de tabla partida",
+        icon: Table2,
+        color: "bg-green-50",
+        iconColor: "text-green-600",
+        iconBg: "bg-green-100",
+      },
+      {
+        id: "diaAM",
+        label: "Día A.M.",
+        description: "Jornada de mañana un día específico",
+        icon: Sun,
+        color: "bg-emerald-50",
+        iconColor: "text-emerald-600",
+        iconBg: "bg-emerald-100",
+      },
+      {
+        id: "diaPM",
+        label: "Día P.M.",
+        description: "Jornada de tarde un día específico",
+        icon: Moon,
+        color: "bg-teal-50",
+        iconColor: "text-teal-600",
+        iconBg: "bg-teal-100",
+      },
+    ]
+  }
+
+  const noveltyOptions = getNoveltyOptions()
+
+  // Subpolíticas para personal de mantenimiento
+  const subpoliticas = [
     {
-      id: "descanso",
-      label: "Descanso",
-      description: "Para un día de descanso",
-      icon: Sun,
-      color: "bg-green-50",
-      iconColor: "text-green-600",
-      iconBg: "bg-green-100",
+      POLÍTICA: "POLÍTICA CORRECTIVO",
+      SUBPOLÍTICA: "SUBPOLITICA CORRECTIVO - CORRECTIVO MENOR MECÁNICA",
     },
     {
-      id: "licencia",
-      label: "Licencia no remunerada",
-      description: "Solicitud de días sin remuneración",
-      icon: Briefcase,
-      color: "bg-emerald-50",
-      iconColor: "text-emerald-600",
-      iconBg: "bg-emerald-100",
+      POLÍTICA: "POLÍTICA CORRECTIVO",
+      SUBPOLÍTICA: "SUBPOLITICA CORRECTIVO - CORRECTIVO MENOR ELÉCTRICO",
     },
     {
-      id: "audiencia",
-      label: "Audiencia o curso de tránsito",
-      description: "Para asistir a audiencias o cursos",
-      icon: Car,
-      color: "bg-teal-50",
-      iconColor: "text-teal-600",
-      iconBg: "bg-teal-100",
+      POLÍTICA: "POLÍTICA CORRECTIVO",
+      SUBPOLÍTICA: "SUBPOLITICA CORRECTIVO - PROGRAMADO MECÁNICA",
     },
     {
-      id: "cita",
-      label: "Cita médica",
-      description: "Para asistir a citas médicas",
-      icon: HeartPulse,
-      color: "bg-cyan-50",
-      iconColor: "text-cyan-600",
-      iconBg: "bg-cyan-100",
+      POLÍTICA: "POLÍTICA CORRECTIVO",
+      SUBPOLÍTICA: "SUBPOLITICA CORRECTIVO - POTENCIA",
     },
     {
-      id: "tablaPartida",
-      label: "Tabla Partida",
-      description: "Para la jornada de tabla partida",
-      icon: Table2,
-      color: "bg-green-50",
-      iconColor: "text-green-600",
-      iconBg: "bg-green-100",
+      POLÍTICA: "POLÍTICA CORRECTIVO",
+      SUBPOLÍTICA: "SUBPOLITICA CORRECTIVO - DIAGNÓSTICO",
     },
     {
-      id: "diaAM",
-      label: "Día A.M.",
-      description: "Jornada de mañana un día específico",
-      icon: Sun,
-      color: "bg-emerald-50",
-      iconColor: "text-emerald-600",
-      iconBg: "bg-emerald-100",
+      POLÍTICA: "POLÍTICA CORRECTIVO",
+      SUBPOLÍTICA: "SUBPOLITICA CORRECTIVO - BIMENSUAL ELECTROMECANICO",
     },
     {
-      id: "diaPM",
-      label: "Día P.M.",
-      description: "Jornada de tarde un día específico",
-      icon: Moon,
-      color: "bg-teal-50",
-      iconColor: "text-teal-600",
-      iconBg: "bg-teal-100",
+      POLÍTICA: "POLÍTICA CORRECTIVO",
+      SUBPOLÍTICA: "SUBPOLITICA CORRECTIVO - BIMENSUAL CARROCERIA",
+    },
+    {
+      POLÍTICA: "POLÍTICA CORRECTIVO",
+      SUBPOLÍTICA: "SUBPOLITICA CORRECTIVO - METRO MEDELLIN",
+    },
+    {
+      POLÍTICA: "POLÍTICA CORRECTIVO",
+      SUBPOLÍTICA: "SUBPOLITICA CORRECTIVO - ALISTAMIENTO CDA",
+    },
+    {
+      POLÍTICA: "POLÍTICA CORRECTIVO",
+      SUBPOLÍTICA: "SUBPOLITICA CORRECTIVO - CARROCERIA MENOR",
+    },
+    {
+      POLÍTICA: "POLÍTICA CORRECTIVO",
+      SUBPOLÍTICA: "SUBPOLITICA CORRECTIVO - CORRECTIVO Y MONTAJE PUERTAS",
+    },
+    {
+      POLÍTICA: "POLÍTICA CORRECTIVO",
+      SUBPOLÍTICA: "SUBPOLITICA CORRECTIVO - PISOS",
+    },
+    {
+      POLÍTICA: "POLÍTICA CORRECTIVO",
+      SUBPOLÍTICA: "SUBPOLITICA CORRECTIVO - CARROCERO CHASIS",
+    },
+    {
+      POLÍTICA: "POLÍTICA CORRECTIVO",
+      SUBPOLÍTICA: "SUBPOLITICA CORRECTIVO - MECÁNICO CHASIS",
+    },
+    {
+      POLÍTICA: "POLÍTICA CORRECTIVO",
+      SUBPOLÍTICA: "SUBPOLITICA CORRECTIVO - PINTURA GENERAL CARROCERÍA",
+    },
+    {
+      POLÍTICA: "POLÍTICA CORRECTIVO",
+      SUBPOLÍTICA: "SUBPOLITICA CORRECTIVO - PINTURA PARCIAL CARROCERÍA",
+    },
+    {
+      POLÍTICA: "POLÍTICA CORRECTIVO",
+      SUBPOLÍTICA: "SUBPOLITICA CORRECTIVO - FIBRA EMBELLECIMIENTO CARROCERÍA",
+    },
+    {
+      POLÍTICA: "POLÍTICA CORRECTIVO",
+      SUBPOLÍTICA: "SUBPOLITICA CORRECTIVO - FALDONES EMBELLECIMIENTO CARROCERÍA",
+    },
+    {
+      POLÍTICA: "POLÍTICA CORRECTIVO",
+      SUBPOLÍTICA: "SUBPOLITICA CORRECTIVO - CHOQUES FUERTES CARROCERÍA",
+    },
+    {
+      POLÍTICA: "POLÍTICA PREVENTIVO - FRECUENCIA FIJA",
+      SUBPOLÍTICA: "SUBPOLITICA PREVENTIVO - CAMBIAR DIFERENCIALES",
+    },
+    {
+      POLÍTICA: "POLÍTICA PREVENTIVO - FRECUENCIA FIJA",
+      SUBPOLÍTICA: "SUBPOLITICA PREVENTIVO - HACER",
+    },
+    {
+      POLÍTICA: "POLÍTICA PREVENTIVO - FRECUENCIA FIJA",
+      SUBPOLÍTICA: "SUBPOLITICA PREVENTIVO - LUBRICACION",
+    },
+    {
+      POLÍTICA: "POLÍTICA PREVENTIVO - FRECUENCIA FIJA",
+      SUBPOLÍTICA: "SUBPOLITICA PREVENTIVO - ALISTAMIENTO PROFUNDO",
+    },
+    {
+      POLÍTICA: "POLÍTICA PREVENTIVO - FRECUENCIA FIJA",
+      SUBPOLÍTICA: "SUBPOLITICA PREVENTIVO - ENGRASE",
+    },
+    {
+      POLÍTICA: "POLÍTICA PREVENTIVO - FRECUENCIA FIJA",
+      SUBPOLÍTICA: "SUBPOLITICA PREVENTIVO - ALISTAMIENTO CHIP Y TANQUE GAS",
+    },
+    {
+      POLÍTICA: "POLÍTICA PREVENTIVO - FRECUENCIA FIJA",
+      SUBPOLÍTICA: "SUBPOLITICA PREVENTIVO - INSPECCION BIMENSUAL CARROCERIA",
+    },
+    {
+      POLÍTICA: "POLÍTICA PREVENTIVO - FRECUENCIA FIJA",
+      SUBPOLÍTICA: "SUBPOLITICA PREVENTIVO - FRENOS ANUAL",
+    },
+    {
+      POLÍTICA: "POLÍTICA PREVENTIVO - FRECUENCIA FIJA",
+      SUBPOLÍTICA: "SUBPOLITICA PREVENTIVO - GNV",
+    },
+    {
+      POLÍTICA: "POLÍTICA PREVENTIVO - FRECUENCIA FIJA",
+      SUBPOLÍTICA: "SUBPOLITICA PREVENTIVO - ELECTRICO ANUAL",
+    },
+    {
+      POLÍTICA: "POLÍTICA PREVENTIVO - FRECUENCIA FIJA",
+      SUBPOLÍTICA: "SUBPOLITICA PREVENTIVO - REFRIGERACION ANUAL",
+    },
+    {
+      POLÍTICA: "POLÍTICA PREVENTIVO - FRECUENCIA FIJA",
+      SUBPOLÍTICA: "SUBPOLITICA PREVENTIVO - PMR BIMENSUAL",
+    },
+    {
+      POLÍTICA: "POLÍTICA PREVENTIVO - FRECUENCIA FIJA",
+      SUBPOLÍTICA: "SUBPOLITICA PREVENTIVO - PUERTAS BIMENSUAL",
+    },
+    {
+      POLÍTICA: "POLÍTICA PREVENTIVO - FRECUENCIA FIJA",
+      SUBPOLÍTICA: "SUBPOLITICA PREVENTIVO - INSPECCION BIMENSUAL ELECTROMECANICO",
+    },
+    {
+      POLÍTICA: "POLÍTICA PREVENTIVO - FRECUENCIA VARIABLE",
+      SUBPOLÍTICA: "SUBPOLITICA PREVENTIVO LLANTAS",
+    },
+    {
+      POLÍTICA: "POLÍTICA PREVENTIVO - FRECUENCIA VARIABLE",
+      SUBPOLÍTICA: "SUBPOLITICA PREVENTIVO - REDISEÑOS O MEJORAS TECNICAS",
+    },
+    {
+      POLÍTICA: "POLÍTICA PREVENTIVO - FRECUENCIA VARIABLE",
+      SUBPOLÍTICA: "SUBPOLITICA PREVENTIVO - COMPONENTES MAYORES CRC",
+    },
+    {
+      POLÍTICA: "APOYO ADMINISTRATIVO",
+      SUBPOLÍTICA: "APOYO ADMINISTRATIVO - LÍDER DE MANTENIMIENTO",
+    },
+    {
+      POLÍTICA: "APOYO ADMINISTRATIVO",
+      SUBPOLÍTICA: "APOYO ADMINISTRATIVO - AUXILIAR MANTENIMIENTO - FLOTA",
     },
   ]
 
-  const selectedNoveltyLabel =
-    noveltyOptions.find((option) => option.id === noveltyType)?.label || "Seleccione el tipo de novedad"
-  const selectedNoveltyIcon = noveltyOptions.find((option) => option.id === noveltyType)?.icon || FileText
+  // Agrupar subpolíticas por política
+  const groupedSubpoliticas = subpoliticas.reduce(
+    (acc, item) => {
+      if (!acc[item.POLÍTICA]) {
+        acc[item.POLÍTICA] = []
+      }
+      acc[item.POLÍTICA].push(item.SUBPOLÍTICA)
+      return acc
+    },
+    {} as Record<string, string[]>
+  )
+
+  // Filtrar subpolíticas basado en el término de búsqueda
+  const filteredGroupedSubpoliticas = useMemo(() => {
+    if (!subpoliticaSearchTerm.trim()) {
+      return groupedSubpoliticas
+    }
+
+    const searchTerm = subpoliticaSearchTerm.toLowerCase().trim()
+    const filtered: Record<string, string[]> = {}
+
+    Object.entries(groupedSubpoliticas).forEach(([politica, subpoliticasList]) => {
+      // Filtrar subpolíticas que contengan el término de búsqueda
+      const filteredSubpoliticas = subpoliticasList.filter(subpolitica =>
+        subpolitica.toLowerCase().includes(searchTerm) ||
+        politica.toLowerCase().includes(searchTerm)
+      )
+
+      // Solo agregar la política si tiene subpolíticas que coinciden
+      if (filteredSubpoliticas.length > 0) {
+        filtered[politica] = filteredSubpoliticas
+      }
+    })
+
+    return filtered
+  }, [groupedSubpoliticas, subpoliticaSearchTerm])
+
+  const selectedNoveltyLabel = noveltyType === "subpolitica" 
+    ? selectedSubpolitica 
+    : noveltyOptions.find((option) => option.id === noveltyType)?.label || "Seleccione el tipo de novedad"
+  const selectedNoveltyIcon = noveltyType === "subpolitica" 
+    ? Briefcase 
+    : noveltyOptions.find((option) => option.id === noveltyType)?.icon || FileText
 
   // 5. Ajustar el renderizado condicional para usar el nuevo isLoading y error
   if (isLoading) {
@@ -862,26 +1869,26 @@ export default function PermitRequestForm() {
   }
 
   if (error) {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="bg-white p-8 rounded-xl shadow-md text-center">
-        <h2 className="text-lg font-bold text-red-600 mb-2">Error al cargar los datos del usuario</h2>
-        <p className="text-gray-700 mb-4">{error}</p>
-        <Button 
-          onClick={() => {
-            // Eliminar token de acceso
-            localStorage.removeItem('accessToken')
-            // Redirigir a la página de login
-            router.push('/')
-          }} 
-          className="bg-emerald-600 text-white"
-        >
-          Iniciar Sesión
-        </Button>
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="bg-white p-8 rounded-xl shadow-md text-center">
+          <h2 className="text-lg font-bold text-red-600 mb-2">Error al cargar los datos del usuario</h2>
+          <p className="text-gray-700 mb-4">{error}</p>
+          <Button
+            onClick={() => {
+              // Eliminar token de acceso
+              localStorage.removeItem("accessToken")
+              // Redirigir a la página de login
+              router.push("/")
+            }}
+            className="bg-emerald-600 text-white"
+          >
+            Iniciar Sesión
+          </Button>
+        </div>
       </div>
-    </div>
-  )
-}
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-green-100">
@@ -899,15 +1906,15 @@ export default function PermitRequestForm() {
           <div className="absolute bottom-0 left-0 w-32 h-32 bg-white opacity-5 rounded-full -mb-16 -ml-16"></div>
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-      <motion.div
+              <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.5 }}
+                transition={{ duration: 0.5 }}
                 className="mr-4 bg-white/20 p-3 rounded-2xl backdrop-blur-sm shadow-lg"
               >
                 <FileText className="h-7 w-7" />
               </motion.div>
-            <motion.div
+              <motion.div
                 initial={{ x: -20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
@@ -934,18 +1941,18 @@ export default function PermitRequestForm() {
                   </AvatarFallback>
                 </Avatar>
               </motion.div>
-                      </div>
-                    </div>
-                    </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Additional space between header and content */}
       <div className="h-10"></div>
 
       <div className="container mx-auto px-4 py-6">
-            <motion.div
+        <motion.div
           initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
           className="mb-8"
         >
@@ -959,20 +1966,20 @@ export default function PermitRequestForm() {
             <CardContent className="p-6">
               {/* Form content directly, no tabs */}
               <form onSubmit={handleSubmit} className="space-y-6">
-          {/* User Info Card */}
-          <UserInfoCard
+                {/* User Info Card */}
+                <UserInfoCard
                   code={userData?.code}
                   name={userData?.name}
                   phone={userData?.phone}
-            onPhoneEdit={handlePhoneDoubleClick}
-          />
+                  onPhoneEdit={handlePhoneDoubleClick}
+                />
 
-            {/* Novelty Type Section */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+                {/* Novelty Type Section */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
-                className="space-y-2"
+                  className="space-y-2"
                 >
                   <Label htmlFor="noveltyType" className="text-green-700 font-medium flex items-center">
                     <Briefcase className="h-4 w-4 mr-2 text-green-600" />
@@ -989,62 +1996,62 @@ export default function PermitRequestForm() {
                         <>
                           <div className="bg-green-100 p-2 rounded-lg mr-3">
                             {React.createElement(selectedNoveltyIcon, { className: "h-5 w-5 text-green-600" })}
-                      </div>
+                          </div>
                           <span className="font-medium">{selectedNoveltyLabel}</span>
                         </>
                       ) : (
                         <>
                           <div className="bg-gray-100 p-2 rounded-lg mr-3 group-hover:bg-green-100 transition-colors">
                             <FileText className="h-5 w-5 text-gray-500 group-hover:text-green-600 transition-colors" />
-                      </div>
+                          </div>
                           <span className="text-gray-500 group-hover:text-gray-700 transition-colors">
                             Seleccione el tipo de novedad
-                            </span>
+                          </span>
                         </>
                       )}
                     </div>
                     <ChevronRight className="h-5 w-5 text-green-500" />
                   </motion.button>
-            </motion.div>
+                </motion.div>
 
-            {/* Time Section - Only for specific novelty types */}
+                {/* Time Section - Only for specific novelty types */}
                 <AnimatePresence>
-            {(noveltyType === "cita" || noveltyType === "audiencia") && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+                  {(noveltyType === "cita" || noveltyType === "audiencia") && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.4 }}
+                      transition={{ duration: 0.4 }}
                       className="bg-gradient-to-r from-green-50 to-white rounded-2xl border border-green-100 shadow-lg overflow-hidden"
                     >
                       <div className="p-6">
                         <div className="flex items-center mb-4">
                           <Clock className="h-6 w-6 mr-3 text-green-600" />
                           <h3 className="text-green-800 font-bold text-xl">Hora de la Novedad</h3>
-                      </div>
-                  <div className="relative">
-                    <Input
-                      id="time"
-                      type="time"
-                      value={timeValue}
-                      onChange={(e) => setTimeValue(e.target.value)}
-                      className="pl-12 pr-4 py-3 border-green-200 focus:ring-green-500 bg-white shadow-sm rounded-xl text-base"
-                      required
-                    />
+                        </div>
+                        <div className="relative">
+                          <Input
+                            id="time"
+                            type="time"
+                            value={timeValue}
+                            onChange={(e) => setTimeValue(e.target.value)}
+                            className="pl-12 pr-4 py-3 border-green-200 focus:ring-green-500 bg-white shadow-sm rounded-xl text-base"
+                            required
+                          />
                           <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-green-500">
-                      <Clock className="h-5 w-5" />
+                            <Clock className="h-5 w-5" />
                           </div>
-                    </div>
-                    </div>
-                  </motion.div>
-            )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
                 </AnimatePresence>
 
                 {/* Calendar Section */}
-                  <motion.div
+                <motion.div
                   className="bg-gradient-to-r from-green-50 to-white rounded-2xl border border-green-100 shadow-lg overflow-hidden"
-              initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.3 }}
                 >
                   <CardHeader className="pb-4">
@@ -1055,9 +2062,7 @@ export default function PermitRequestForm() {
                   </CardHeader>
                   <CardContent>
                     {weekDates.length === 0 ? (
-                      <div className="text-center text-gray-500 py-8">
-                        No hay fechas disponibles para esta semana.
-                      </div>
+                      <div className="text-center text-gray-500 py-8">No hay fechas disponibles para esta semana.</div>
                     ) : (
                       <div className="grid grid-cols-4 sm:grid-cols-7 gap-3 calendar-grid">
                         {/* Mensaje de guía si no hay novedad seleccionada */}
@@ -1068,9 +2073,13 @@ export default function PermitRequestForm() {
                             className="col-span-full bg-yellow-50 text-yellow-800 p-4 rounded-xl flex items-center mb-4 shadow-sm border border-yellow-200"
                           >
                             <Info className="h-5 w-5 mr-3 text-yellow-600" />
-                            <p className="text-sm font-medium">Por favor, selecciona primero el **Tipo de Novedad** para habilitar la selección de fechas.</p>
+                            <p className="text-sm font-medium">
+                              Por favor, selecciona primero el **Tipo de Novedad** para habilitar la selección de
+                              fechas.
+                            </p>
                           </motion.div>
                         )}
+
                         {/* Mensaje informativo sobre fechas con permisos existentes */}
                         {noveltyType && existingPermitDates.length > 0 && (
                           <motion.div
@@ -1084,6 +2093,7 @@ export default function PermitRequestForm() {
                             </p>
                           </motion.div>
                         )}
+
                         {weekDates.map((item, index) => {
                           const isDateSelected = selectedDates.some((d) => isSameDay(d, item.date))
                           const isHolidayDate = isHoliday(item.date).isHoliday
@@ -1091,32 +2101,42 @@ export default function PermitRequestForm() {
                           const formattedDate = format(item.date, "yyyy-MM-dd")
                           const hasExistingPermit = existingPermitDates.includes(formattedDate)
                           const isDisabled = isHolidayDate || !noveltyType || hasExistingPermit // Disable if holiday, no novelty type, or has existing permit
-                        
-                        return (
-                          <button
-                            key={index}
+
+                          return (
+                            <button
+                              key={index}
                               className={`calendar-day relative flex flex-col items-center justify-center p-3 rounded-xl transition-all duration-200 text-center
-                                ${isDateSelected ? "bg-gradient-to-br from-green-500 to-green-600 text-white shadow-lg transform scale-105"
-                                  : hasExistingPermit ? "bg-red-100 text-red-600 cursor-not-allowed opacity-80 border border-red-300"
-                                  : isDisabled ? "bg-gray-100 text-gray-400 cursor-not-allowed opacity-70"
-                                  : "bg-white hover:bg-green-50 border border-green-200 hover:border-green-300 hover:shadow-md"}
-                                ${isToday ? "border-2 border-blue-400 ring-2 ring-blue-200" : ""}
+                                ${
+                                  isDateSelected
+                                    ? "bg-gradient-to-br from-green-500 to-green-600 text-white shadow-lg transform scale-105"
+                                    : hasExistingPermit
+                                      ? "bg-red-100 text-red-600 cursor-not-allowed opacity-80 border border-red-300"
+                                      : isDisabled
+                                        ? "bg-gray-100 text-gray-400 cursor-not-allowed opacity-70"
+                                        : "bg-white hover:bg-green-50 border border-green-200 hover:border-green-300 hover:shadow-md"
+                                }
+                                ${isToday ? "border-2 border-green-400 ring-2 ring-green-200" : ""}
                               `}
-                            onClick={(e) => {
+                              onClick={(e) => {
                                 e.preventDefault()
-                                if (!isDisabled) { // Only allow selection if not disabled
+                                if (!isDisabled) {
+                                  // Only allow selection if not disabled
                                   handleDateSelect(item.date)
                                 }
                               }}
                               type="button"
-                            disabled={isDisabled}
-                          >
-                              <span className={`text-xs font-medium ${isDateSelected ? "text-white" : "text-green-600"} date-text capitalize`}>
+                              disabled={isDisabled}
+                            >
+                              <span
+                                className={`text-xs font-medium ${isDateSelected ? "text-white" : "text-green-600"} date-text capitalize`}
+                              >
                                 {format(item.date, "EEE", { locale: es })}
-                            </span>
-                              <span className={`text-2xl font-bold mt-1 ${isDateSelected ? "text-white" : "text-gray-900"}`}>
+                              </span>
+                              <span
+                                className={`text-2xl font-bold mt-1 ${isDateSelected ? "text-white" : "text-gray-900"}`}
+                              >
                                 {format(item.date, "d")}
-                            </span>
+                              </span>
                               {isHolidayDate && ( // Use isHolidayDate here
                                 <span className="absolute bottom-1 text-[0.6rem] font-semibold text-red-500">
                                   {isHoliday(item.date).name.split(" ")[0]}
@@ -1127,63 +2147,61 @@ export default function PermitRequestForm() {
                                   Ya solicitado
                                 </span>
                               )}
-                            {isDateSelected && (
-                              <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
+                              {isDateSelected && (
+                                <motion.div
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
                                   className="absolute top-2 right-2 bg-white rounded-full p-0.5"
-                              >
-                                <CheckCircle className="w-4 h-4 text-green-500" />
-                              </motion.div>
-                            )}
-                            {hasExistingPermit && (
-                              <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                className="absolute top-2 left-2 bg-red-500 rounded-full p-0.5"
-                              >
-                                <AlertCircle className="w-4 h-4 text-white" />
-                              </motion.div>
-                            )}
-                          </button>
-                        )
-                      })}
-                    </div>
-                )}
+                                >
+                                  <CheckCircle className="w-4 h-4 text-green-500" />
+                                </motion.div>
+                              )}
+                              {hasExistingPermit && (
+                                <motion.div
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  className="absolute top-2 left-2 bg-red-500 rounded-full p-0.5"
+                                >
+                                  <AlertCircle className="w-4 h-4 text-white" />
+                                </motion.div>
+                              )}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
                   </CardContent>
-            </motion.div>
+                </motion.div>
 
-
-
-            {/* Description Section */}
-            <motion.div
+                {/* Description Section */}
+                <motion.div
                   className="bg-gradient-to-r from-green-50 to-white rounded-2xl border border-green-100 shadow-lg overflow-hidden"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.5 }}
-            >
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.5 }}
+                >
                   <div className="p-6">
                     <div className="flex items-center mb-4">
                       <FileText className="h-6 w-6 mr-3 text-green-600" />
                       <h3 className="text-green-800 font-bold text-xl">Detalles Adicionales</h3>
                     </div>
-                <div className="relative group">
-                  <Textarea
-                    id="description"
-                    value={descriptionValue}
-                    onChange={(e) => setDescriptionValue(e.target.value)}
-                    placeholder="Ingrese el detalle de tu solicitud (ej. motivo, duración, etc.)"
-                    className="min-h-[140px] border-green-200 focus:ring-green-500 bg-white/90 shadow-sm rounded-xl p-4 text-base group-hover:border-green-300 transition-all duration-300"
-                  />
-                </div>
-          </div>
+                    <div className="relative group">
+                      <Textarea
+                        id="description"
+                        value={descriptionValue}
+                        onChange={(e) => setDescriptionValue(e.target.value)}
+                        placeholder="Ingrese el detalle de tu solicitud (ej. motivo, duración, etc.)"
+                        className="min-h-[140px] border-green-200 focus:ring-green-500 bg-white/90 shadow-sm rounded-xl p-4 text-base group-hover:border-green-300 transition-all duration-300"
+                      />
+                    </div>
+                  </div>
                 </motion.div>
 
                 {/* Request Summary Section */}
                 {(noveltyType || selectedDates.length > 0) && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, delay: 0.6 }}
                     className="bg-green-50 p-5 rounded-2xl border border-green-200 shadow-md"
                   >
@@ -1202,51 +2220,60 @@ export default function PermitRequestForm() {
                           ? selectedDates.map((d) => format(d, "dd/MM/yyyy")).join(", ")
                           : "No seleccionadas"}
                       </p>
-
+                      {(noveltyType === "cita" || noveltyType === "audiencia") && (
+                        <p className="text-sm">
+                          <span className="font-semibold">Archivos Adjuntos:</span>{" "}
+                          {uploadedFiles.filter((f) => !f.error).length} archivo(s)
+                        </p>
+                      )}
                     </div>
                   </motion.div>
                 )}
 
-                <motion.div 
-  whileHover={{ scale: 1.05 }} 
-  whileTap={{ scale: 0.95 }} 
-  className="pt-6 flex justify-center w-full"
->
-              <Button
-                type="submit"
-    className="
-      w-full max-w-md 
-      bg-gradient-to-r from-emerald-600 to-emerald-500 
-      text-white 
-      hover:from-emerald-700 hover:to-emerald-600 
-      px-6 py-4 
-      rounded-full 
-      text-lg font-bold 
-      transition-all duration-300 
-      shadow-xl hover:shadow-emerald-500/50 
-      flex items-center justify-center 
-      space-x-3
-      group
-    "
-    disabled={connectionAwareSubmit.state.isSubmitting || !noveltyType || ((noveltyType !== "semanaAM" && noveltyType !== "semanaPM") && selectedDates.length === 0)}
-  >
-    {connectionAwareSubmit.state.isSubmitting ? (
-      <div className="flex items-center space-x-2">
-        <Loader2 className="h-6 w-6 animate-spin" />
-        <span>Enviando Solicitud...</span>
-      </div>
-    ) : (
-      <div className="flex items-center space-x-2">
-        <CheckCircle className="h-6 w-6 group-hover:animate-pulse" />
-        <span>Enviar Solicitud</span>
-      </div>
-    )}
-              </Button>
-          </motion.div>
-        </form>
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="pt-6 pb-24 flex justify-center w-full"
+                >
+                  <Button
+                    type="submit"
+                    className="
+                      w-full max-w-md
+                       bg-gradient-to-r from-emerald-600 to-emerald-500
+                       text-white
+                       hover:from-emerald-700 hover:to-emerald-600
+                       px-6 py-4
+                       rounded-full
+                       text-lg font-bold
+                       transition-all duration-300
+                       shadow-xl hover:shadow-emerald-500/50
+                       flex items-center justify-center
+                       space-x-3
+                      group
+                    "
+                    disabled={
+                      connectionAwareSubmit.state.isSubmitting ||
+                      !noveltyType ||
+                      (noveltyType !== "semanaAM" && noveltyType !== "semanaPM" && selectedDates.length === 0)
+                    }
+                  >
+                    {connectionAwareSubmit.state.isSubmitting ? (
+                      <div className="flex items-center space-x-2">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                        <span>Enviando Solicitud...</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center space-x-2">
+                        <CheckCircle className="h-6 w-6 group-hover:animate-pulse" />
+                        <span>Enviar Solicitud</span>
+                      </div>
+                    )}
+                  </Button>
+                </motion.div>
+              </form>
             </CardContent>
           </Card>
-      </motion.div>
+        </motion.div>
       </div>
 
       <AnimatePresence>
@@ -1486,82 +2513,330 @@ export default function PermitRequestForm() {
         </DialogContent>
       </Dialog>
 
-      {/* Novelty Type Selection Dialog (based on image) */}
+      {/* Novelty Type Selection Dialog */}
       <Dialog open={isTypeDialogOpen} onOpenChange={setIsTypeDialogOpen}>
-        <DialogContent className="sm:max-w-md p-0 rounded-3xl overflow-hidden border-0 shadow-2xl max-h-[80vh] overflow-y-auto">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white p-6">
-            <div className="flex items-center">
-              <AlertCircle className="h-8 w-8 mr-3 text-white/80" />
-              <h2 className="text-2xl font-bold">Seleccione el Tipo de Novedad</h2>
-          </div>
-            <p className="text-sm text-white/70 mt-2">Elige el tipo de solicitud que necesitas</p>
+        <DialogContent className="sm:max-w-6xl p-0 rounded-3xl overflow-hidden border-0 shadow-2xl max-h-[90vh] overflow-y-auto backdrop-blur-sm">
+          <div className="bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 text-white p-8 relative overflow-hidden">
+            <div className="absolute inset-0 bg-black/5"></div>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-32 translate-x-32"></div>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-24 -translate-x-24"></div>
+            <div className="relative z-10">
+              <div className="flex items-center mb-4">
+                <div className="bg-white/15 backdrop-blur-md rounded-2xl p-4 mr-5 shadow-lg">
+                  <AlertCircle className="h-8 w-8 text-white drop-shadow-sm" />
+                </div>
+                <div>
+                  <h2 className="text-3xl font-bold tracking-tight mb-1">Seleccione el Tipo de Novedad</h2>
+                  <p className="text-emerald-50 text-lg font-medium">
+                    Elige el tipo de solicitud que necesitas realizar
+                  </p>
+                </div>
               </div>
-
-          {/* Novelty Types - Grid Layout */}
-          <div className="p-6 grid grid-cols-2 gap-4">
-            {noveltyOptions.map((type) => (
-              <motion.div
-                key={type.id}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => {
-                  setNoveltyType(type.id)
-                  setHasShownLicenseNotification(false)
-                  if (type.id === "semanaAM" || type.id === "semanaPM") {
-                    setSelectedDates([])
-                  }
-                  setIsTypeDialogOpen(false)
-                  setErrorMessage("") // Clear error message
-                  setIsErrorModalOpen(false) // Close error modal
-                  console.log("✅ Tipo de Novedad seleccionado:", type.id)
-                }}
-                className={`
-                  ${type.color} 
-                  rounded-2xl 
-                  p-4 
-                  flex 
-                  items-center 
-                  cursor-pointer 
-                  transition-all 
-                  duration-200 
-                  hover:shadow-md 
-                  border 
-                  border-transparent 
-                  hover:border-emerald-200
-                  ${noveltyType === type.id ? 'ring-2 ring-emerald-500 border-emerald-200' : ''}
-                `}
-              >
-                <div className={`${type.iconBg} p-3 rounded-xl mr-4`}>
-                  <type.icon className={`h-6 w-6 ${type.iconColor}`} />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-800 text-base">{type.label}</h3>
-                  <p className="text-xs text-gray-600">{type.description}</p>
-                </div>
-                {noveltyType === type.id && (
-                  <div className="ml-auto bg-emerald-500 text-white rounded-full p-1">
-                    <CheckCircle className="h-4 w-4" />
-                  </div>
-                )}
-              </motion.div>
-            ))}
+            </div>
           </div>
 
-          {/* Footer */}
-          <DialogFooter className="p-6 border-t border-gray-100 flex justify-end">
-            <Button
-              onClick={() => setIsTypeDialogOpen(false)}
-              variant="outline"
-              className="rounded-xl border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-            >
-              Cerrar
-            </Button>
-          </DialogFooter>
+          <div className="p-8 bg-gradient-to-b from-gray-50/50 to-white">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {noveltyOptions.map((type, index) => (
+                <motion.div
+                  key={type.id}
+                  initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{
+                    delay: index * 0.08,
+                    duration: 0.4,
+                    type: "spring",
+                    stiffness: 100,
+                    damping: 15,
+                  }}
+                  whileHover={{
+                    scale: 1.05,
+                    y: -8,
+                    transition: { duration: 0.3, type: "spring", stiffness: 200 },
+                  }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    if (type.id === "subpolitica") {
+                      setIsSubpoliticaDialogOpen(true)
+                      setIsTypeDialogOpen(false)
+                    } else {
+                      setNoveltyType(type.id)
+                      setHasShownLicenseNotification(false)
+                      if (type.id === "semanaAM" || type.id === "semanaPM") {
+                        setSelectedDates([])
+                      }
+                      setIsTypeDialogOpen(false)
+                      setErrorMessage("")
+                      setIsErrorModalOpen(false)
+                      console.log("✅ Tipo de Novedad seleccionado:", type.id)
+                    }
+                  }}
+                  className={`
+                    ${type.color}
+                    rounded-2xl
+                    p-6
+                    cursor-pointer
+                    transition-all
+                    duration-300
+                    hover:shadow-2xl
+                    border-2
+                    group
+                    relative
+                    overflow-hidden
+                    backdrop-blur-sm
+                    ${
+                      noveltyType === type.id
+                        ? "border-emerald-400 shadow-xl shadow-emerald-200/60 ring-4 ring-emerald-100/80 bg-gradient-to-br from-emerald-50 to-teal-50"
+                        : "border-gray-200/60 hover:border-emerald-300/80 shadow-md hover:shadow-xl"
+                    }
+                  `}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/60 via-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-400"></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-400"></div>
+
+                  <div className="relative z-10">
+                    <div className="flex items-start justify-between mb-5">
+                      <div
+                        className={`${type.iconBg} p-4 rounded-2xl shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110`}
+                      >
+                        <type.icon className={`h-7 w-7 ${type.iconColor} drop-shadow-sm`} />
+                      </div>
+                      {noveltyType === type.id && (
+                        <motion.div
+                          initial={{ scale: 0, rotate: -180 }}
+                          animate={{ scale: 1, rotate: 0 }}
+                          transition={{ type: "spring", stiffness: 200, damping: 12 }}
+                          className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white rounded-full p-2.5 shadow-lg ring-4 ring-emerald-100"
+                        >
+                          <CheckCircle className="h-5 w-5" />
+                        </motion.div>
+                      )}
+                    </div>
+
+                    <div>
+                      <h3 className="font-bold text-gray-800 text-lg mb-3 group-hover:text-emerald-700 transition-colors duration-300 leading-tight">
+                        {type.label}
+                      </h3>
+                      <p className="text-sm text-gray-600 leading-relaxed font-medium group-hover:text-gray-700 transition-colors duration-300">
+                        {type.description}
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+
+          <div className="px-8 pb-8 pt-6 border-t border-gray-200/60 bg-gradient-to-r from-gray-50/30 to-white">
+            <div className="flex justify-end">
+              <Button
+                onClick={() => setIsTypeDialogOpen(false)}
+                variant="outline"
+                className="rounded-2xl border-2 border-emerald-300/80 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-400 px-10 py-3.5 font-semibold transition-all duration-300 shadow-md hover:shadow-lg"
+              >
+                Cerrar
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
-      {/* Bottom Navigation */}
+      {/* Dialog para seleccionar subpolítica */}
+      <Dialog open={isSubpoliticaDialogOpen} onOpenChange={(open) => {
+        setIsSubpoliticaDialogOpen(open)
+        if (!open) {
+          setSubpoliticaSearchTerm("") // Limpiar búsqueda al cerrar
+        }
+      }}>
+        <DialogContent className="sm:max-w-6xl p-0 rounded-3xl overflow-hidden border-0 shadow-2xl max-h-[90vh] overflow-y-auto backdrop-blur-sm">
+          <div className="bg-gradient-to-br from-green-500 via-green-600 to-green-700 text-white p-8 relative overflow-hidden">
+            <div className="absolute inset-0 bg-black/5"></div>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-32 translate-x-32"></div>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-24 -translate-x-24"></div>
+            <div className="relative z-10">
+              <div className="flex items-center mb-6">
+                <div className="bg-white/15 backdrop-blur-md rounded-2xl p-4 mr-5 shadow-lg">
+                  <Briefcase className="h-8 w-8 text-white drop-shadow-sm" />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-3xl font-bold tracking-tight mb-1">Seleccione una Subpolítica</h2>
+                  <p className="text-green-50 text-lg font-medium">Elige la subpolítica en la que deseas laborar</p>
+                </div>
+              </div>
+              
+              {/* Campo de búsqueda */}
+              <div className="relative mt-6">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-white/70" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Buscar subpolíticas..."
+                  value={subpoliticaSearchTerm}
+                  onChange={(e) => setSubpoliticaSearchTerm(e.target.value)}
+                  className="w-full pl-12 pr-4 py-4 bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/50 transition-all duration-300 text-lg"
+                />
+                {subpoliticaSearchTerm && (
+                  <button
+                    onClick={() => setSubpoliticaSearchTerm("")}
+                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-white/70 hover:text-white transition-colors"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="p-8 space-y-10 bg-gradient-to-b from-gray-50/50 to-white">
+            {Object.keys(filteredGroupedSubpoliticas).length === 0 && subpoliticaSearchTerm.trim() !== "" ? (
+              <div className="text-center py-16">
+                <div className="bg-gray-100 rounded-full p-6 w-24 h-24 mx-auto mb-6">
+                  <Search className="h-12 w-12 text-gray-400 mx-auto" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">No se encontraron resultados</h3>
+                <p className="text-gray-500 mb-6">No hay subpolíticas que coincidan con "{subpoliticaSearchTerm}"</p>
+                <button
+                  onClick={() => setSubpoliticaSearchTerm("")}
+                  className="px-6 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition-colors font-medium"
+                >
+                  Limpiar búsqueda
+                </button>
+              </div>
+            ) : (
+              Object.entries(filteredGroupedSubpoliticas).map(([politica, subpoliticasList], groupIndex) => (
+              <motion.div
+                key={politica}
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: groupIndex * 0.15, duration: 0.5, type: "spring", stiffness: 80 }}
+                className="space-y-6"
+              >
+                <div className="flex items-center space-x-4 mb-8">
+                  <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-3 shadow-lg">
+                    <Briefcase className="h-7 w-7 text-white drop-shadow-sm" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-800 tracking-tight">{politica}</h3>
+                  <div className="flex-1 h-0.5 bg-gradient-to-r from-green-300 via-green-200 to-transparent rounded-full"></div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {subpoliticasList.map((subpolitica, index) => (
+                    <motion.div
+                      key={subpolitica}
+                      initial={{ opacity: 0, x: -30, scale: 0.9 }}
+                      animate={{ opacity: 1, x: 0, scale: 1 }}
+                      transition={{
+                        delay: groupIndex * 0.1 + index * 0.06,
+                        duration: 0.4,
+                        type: "spring",
+                        stiffness: 120,
+                        damping: 15,
+                      }}
+                      whileHover={{
+                        scale: 1.03,
+                        y: -6,
+                        transition: { duration: 0.3, type: "spring", stiffness: 200 },
+                      }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => {
+                        setSelectedSubpolitica(subpolitica)
+                        setNoveltyType("subpolitica")
+                        setIsSubpoliticaDialogOpen(false)
+                        setHasShownLicenseNotification(false)
+                        setSelectedDates([])
+                        setErrorMessage("")
+                        setIsErrorModalOpen(false)
+                        console.log("✅ Subpolítica seleccionada:", subpolitica)
+                      }}
+                      className={`
+                        rounded-2xl
+                        p-6
+                        cursor-pointer
+                        transition-all
+                        duration-300
+                        hover:shadow-2xl
+                        border-2
+                        group
+                        relative
+                        overflow-hidden
+                        backdrop-blur-sm
+                        ${
+                          selectedSubpolitica === subpolitica
+                            ? "bg-gradient-to-br from-green-50 to-green-50 border-green-400 shadow-xl shadow-green-200/60 ring-4 ring-green-100/80"
+                            : "bg-gradient-to-br from-green-50/40 to-white border-green-200/60 hover:border-green-300/80 hover:bg-gradient-to-br hover:from-green-50 hover:to-green-50/60 shadow-md hover:shadow-xl"
+                        }
+                      `}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-br from-white/50 via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-400"></div>
+                      <div className="absolute inset-0 bg-gradient-to-t from-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-400"></div>
+
+                      <div className="relative z-10 flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <div
+                            className={`
+                            p-3.5 rounded-2xl shadow-lg transition-all duration-300 group-hover:shadow-xl group-hover:scale-110
+                            ${
+                              selectedSubpolitica === subpolitica
+                                ? "bg-gradient-to-br from-green-500 to-green-600 text-white ring-4 ring-green-100"
+                                : "bg-green-100 text-green-600 group-hover:bg-green-200 group-hover:text-green-700"
+                            }
+                          `}
+                          >
+                            <Briefcase className="h-6 w-6 drop-shadow-sm" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-800 text-base leading-tight group-hover:text-green-700 transition-colors duration-300">
+                              {subpolitica}
+                            </p>
+                          </div>
+                        </div>
+
+                        {selectedSubpolitica === subpolitica && (
+                          <motion.div
+                            initial={{ scale: 0, rotate: -180 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            transition={{ type: "spring", stiffness: 200, damping: 12 }}
+                            className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-full p-2.5 shadow-lg ring-4 ring-green-100"
+                          >
+                            <CheckCircle className="h-5 w-5" />
+                          </motion.div>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            ))
+            )}
+          </div>
+
+          <div className="px-8 pb-8 pt-6 border-t border-gray-200/60 bg-gradient-to-r from-gray-50/30 to-white">
+            <div className="flex justify-between items-center">
+              <Button
+                onClick={() => {
+                  setIsSubpoliticaDialogOpen(false)
+                  setIsTypeDialogOpen(true)
+                }}
+                variant="outline"
+                className="rounded-2xl border-2 border-green-300/80 text-green-700 hover:bg-green-50 hover:border-green-400 px-8 py-3.5 font-semibold transition-all duration-300 flex items-center space-x-2 shadow-md hover:shadow-lg"
+              >
+                <span>←</span>
+                <span>Volver</span>
+              </Button>
+              <Button
+                onClick={() => setIsSubpoliticaDialogOpen(false)}
+                variant="outline"
+                className="rounded-2xl border-2 border-green-300/80 text-green-700 hover:bg-green-50 hover:border-green-400 px-10 py-3.5 font-semibold transition-all duration-300 shadow-md hover:shadow-lg"
+              >
+                Cerrar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bottom Navigation - Visible for all users */}
       <BottomNavigation hasNewNotification={hasNewNotification} />
     </div>
   )

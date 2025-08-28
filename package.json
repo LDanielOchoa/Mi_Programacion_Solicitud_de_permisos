@@ -57,6 +57,7 @@
     "sonner": "^1.7.1",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
+    "use-debounce": "^10.0.5",
     "vaul": "^1.1.2",
     "xlsx": "^0.18.5"
   },
@@ -75,6 +76,7 @@
     "postcss": "^8",
     "shadcn-ui": "^0.9.4",
     "tailwindcss": "^3.4.1",
+    "turbo": "^2.5.5",
     "typescript": "^5"
   },
   "description": "This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).",
@@ -84,5 +86,6 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "packageManager": "npm@11.1.0"
 }
