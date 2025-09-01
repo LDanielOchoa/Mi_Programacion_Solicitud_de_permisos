@@ -2,7 +2,23 @@
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Calendar, Clock, FileText, Phone, MapPin, Users, User, MessageSquare, X } from "lucide-react"
+import {
+  Calendar,
+  Clock,
+  FileText,
+  Phone,
+  MapPin,
+  Users,
+  User,
+  X,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Sparkles,
+  Star,
+  Shield,
+  Zap,
+} from "lucide-react"
 import { format, parseISO } from "date-fns"
 import { es } from "date-fns/locale"
 import { useEffect } from "react"
@@ -33,18 +49,18 @@ interface RequestDetailsProps {
 }
 
 export function RequestDetailsDialog({ request, open, onOpenChange }: RequestDetailsProps) {
-  // Evitar el desplazamiento del cuerpo cuando el diálogo está abierto
   useEffect(() => {
     if (open) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden"
     } else {
-      document.body.style.overflow = 'auto';
+      document.body.style.overflow = "auto"
     }
-    
+
     return () => {
-      document.body.style.overflow = 'auto';
-    };
-  }, [open]);
+      document.body.style.overflow = "auto"
+    }
+  }, [open])
+
   const formatDate = (dateString: string) => {
     try {
       return format(parseISO(dateString), "d 'de' MMMM, yyyy", { locale: es })
@@ -53,212 +69,285 @@ export function RequestDetailsDialog({ request, open, onOpenChange }: RequestDet
     }
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusConfig = (status: string) => {
     switch (status) {
       case "approved":
-        return "bg-emerald-500"
+        return {
+          bgColor: "bg-green-50",
+          textColor: "text-green-800",
+          icon: CheckCircle2,
+          text: "Aprobada",
+          cardBg: "bg-green-50",
+          cardBorder: "border-green-200",
+          iconBg: "bg-green-600",
+        }
       case "rejected":
-        return "bg-red-500"
+        return {
+          bgColor: "bg-green-50", 
+          textColor: "text-green-700",
+          icon: XCircle,
+          text: "Rechazada",
+          cardBg: "bg-green-50",
+          cardBorder: "border-green-200",
+          iconBg: "bg-green-500",
+        }
       case "pending":
-        return "bg-amber-500"
+        return {
+          bgColor: "bg-green-50",
+          textColor: "text-green-600",
+          icon: AlertCircle,
+          text: "Pendiente", 
+          cardBg: "bg-green-50",
+          cardBorder: "border-green-200",
+          iconBg: "bg-green-400",
+        }
       default:
-        return "bg-gray-500"
+        return {
+          bgColor: "bg-green-50",
+          textColor: "text-green-600",
+          icon: AlertCircle,
+          text: "Desconocido",
+          cardBg: "bg-green-50", 
+          cardBorder: "border-green-200",
+          iconBg: "bg-green-300",
+        }
     }
   }
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "approved":
-        return "Aprobada"
-      case "rejected":
-        return "Rechazada"
-      case "pending":
-        return "Pendiente"
-      default:
-        return "Desconocido"
-    }
-  }
+  const statusConfig = getStatusConfig(request.status)
+  const StatusIcon = statusConfig.icon
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md p-0 rounded-xl sm:max-w-md w-[95%] h-auto">
-        {/* Encabezado con color según estado */}
-        <div className={`${getStatusColor(request.status)} p-4 text-white relative flex-shrink-0`}>
+      <DialogContent className="max-w-2xl p-0 rounded-3xl sm:max-w-2xl w-[95%] max-h-[85vh] sm:max-h-[90vh] shadow-2xl border-0 bg-white overflow-hidden flex flex-col">
+        <div
+          className={`${statusConfig.bgColor} ${statusConfig.textColor} p-8 relative flex-shrink-0 overflow-hidden`}
+        >
+          {/* Simple decorative elements */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-green-100 rounded-full -translate-y-16 translate-x-16"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-green-200 rounded-full translate-y-12 -translate-x-12"></div>
+
           <Button
             variant="ghost"
             size="icon"
-            className="absolute top-2 right-2 text-white hover:bg-white/20 rounded-full"
+            className="absolute top-6 right-6 text-current hover:bg-white/20 rounded-full h-10 w-10 transition-all duration-300 hover:scale-110 z-10"
             onClick={() => onOpenChange(false)}
           >
-            <X className="h-4 w-4" />
+            <X className="h-5 w-5" />
           </Button>
-          <DialogTitle className="text-lg font-bold mb-2 pr-8">{request.tipo_novedad}</DialogTitle>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="bg-white/20 text-white border-white/30">
-              #{request.code}
-            </Badge>
-            <Badge variant="outline" className="bg-white/20 text-white border-white/30">
-              {getStatusText(request.status)}
-            </Badge>
+
+          <div className="relative z-10">
+            <div className="flex items-start gap-4 mb-6 pr-16">
+              <div className="bg-white p-3 rounded-2xl border border-green-200 shadow-lg">
+                <Sparkles className="h-6 w-6 text-green-600" />
+              </div>
+              <div className="flex-1">
+                <DialogTitle className="text-2xl font-bold mb-2 text-balance leading-tight">
+                  {request.tipo_novedad}
+                </DialogTitle>
+                <p className="text-base opacity-90 font-medium">Solicitud de {request.request_type}</p>
+                <p className="text-sm opacity-75 mt-1">Solicitante: {request.name}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 flex-wrap">
+              <Badge
+                variant="outline"
+                className="bg-white text-green-700 border-green-300 rounded-full px-4 py-2 font-semibold text-sm"
+              >
+                #{request.code}
+              </Badge>
+              <div className="flex items-center gap-2 bg-white rounded-full px-4 py-2 border border-green-300">
+                <StatusIcon className="h-4 w-4 text-green-600" />
+                <span className="text-sm font-semibold text-green-700">{statusConfig.text}</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div style={{ maxHeight: '40vh', overflowY: 'scroll', padding: '16px', touchAction: 'auto' }}>
-          <div className="space-y-4">
-            {/* Mi Solicitud */}
-            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-              <div className="flex items-center mb-3">
-                <div className="bg-blue-500 p-2 rounded-lg mr-3">
-                  <User className="w-4 h-4 text-white" />
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 sm:space-y-8 bg-green-50">
+          {/* Main request details card */}
+          <div className="bg-white rounded-3xl p-8 border border-green-200 shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden">
+            {/* Simple corner element */}
+            <div className="absolute top-0 right-0 w-20 h-20 bg-green-100 rounded-full -translate-y-10 translate-x-10"></div>
+
+            <div className="flex items-center gap-4 mb-8 relative z-10">
+              <div className="bg-green-600 p-4 rounded-2xl shadow-lg">
+                <User className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="font-bold text-xl text-gray-800">Detalles de la Solicitud</h3>
+                <p className="text-gray-600">Información completa de tu solicitud</p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 mb-8">
+              <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-green-200 hover:border-green-300 transition-all duration-200">
+                <div className="bg-green-100 p-3 rounded-xl">
+                  <Calendar className="w-5 h-5 text-green-600" />
                 </div>
-                <h3 className="font-semibold text-blue-800">Mi Solicitud</h3>
+                <div className="min-w-0 flex-1">
+                  <span className="text-sm text-gray-600 block font-medium">Fecha de creación</span>
+                  <span className="font-bold text-gray-800 text-lg">{formatDate(request.createdAt)}</span>
+                </div>
               </div>
 
-              {/* Información básica */}
-              <div className="space-y-3 mb-4">
-                <div className="flex items-center text-sm">
-                  <Calendar className="w-4 h-4 text-blue-600 mr-2" />
-                  <span className="text-gray-600">Fecha de creación:</span>
-                  <span className="ml-2 font-medium">{formatDate(request.createdAt)}</span>
+              {request.fecha && (
+                <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-green-200 hover:border-green-300 transition-all duration-200">
+                  <div className="bg-green-100 p-3 rounded-xl">
+                    <Star className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-sm text-gray-600 block font-medium">Fecha solicitada</span>
+                    <span className="font-bold text-gray-800 text-lg">{request.fecha}</span>
+                  </div>
                 </div>
+              )}
 
-                {request.fecha && (
-                  <div className="flex items-center text-sm">
-                    <Calendar className="w-4 h-4 text-blue-600 mr-2" />
-                    <span className="text-gray-600">Fecha solicitada:</span>
-                    <span className="ml-2 font-medium">{request.fecha}</span>
+              {request.hora && (
+                <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-green-200 hover:border-green-300 transition-all duration-200">
+                  <div className="bg-green-100 p-3 rounded-xl">
+                    <Clock className="w-5 h-5 text-green-600" />
                   </div>
-                )}
-
-                {request.hora && (
-                  <div className="flex items-center text-sm">
-                    <Clock className="w-4 h-4 text-blue-600 mr-2" />
-                    <span className="text-gray-600">Horario:</span>
-                    <span className="ml-2 font-medium">{request.hora}</span>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-sm text-gray-600 block font-medium">Horario</span>
+                    <span className="font-bold text-gray-800 text-lg">{request.hora}</span>
                   </div>
-                )}
+                </div>
+              )}
 
-                {request.telefono && (
-                  <div className="flex items-center text-sm">
-                    <Phone className="w-4 h-4 text-blue-600 mr-2" />
-                    <span className="text-gray-600">Teléfono:</span>
-                    <span className="ml-2 font-medium">{request.telefono}</span>
+              {request.telefono && (
+                <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-green-200 hover:border-green-300 transition-all duration-200">
+                  <div className="bg-green-100 p-3 rounded-xl">
+                    <Phone className="w-5 h-5 text-green-600" />
                   </div>
-                )}
-
-                {request.zona && (
-                  <div className="flex items-center text-sm">
-                    <MapPin className="w-4 h-4 text-blue-600 mr-2" />
-                    <span className="text-gray-600">Zona:</span>
-                    <span className="ml-2 font-medium">{request.zona}</span>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-sm text-gray-600 block font-medium">Teléfono de contacto</span>
+                    <span className="font-bold text-gray-800 text-lg">{request.telefono}</span>
                   </div>
-                )}
+                </div>
+              )}
 
-                {(request.comp_am || request.comp_pm) && (
-                  <div className="text-sm">
-                    <div className="flex items-center mb-2">
-                      <Users className="w-4 h-4 text-blue-600 mr-2" />
-                      <span className="text-gray-600">Equipo:</span>
+              {request.zona && (
+                <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-green-200 hover:border-green-300 transition-all duration-200">
+                  <div className="bg-green-100 p-3 rounded-xl">
+                    <MapPin className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-sm text-gray-600 block font-medium">Zona de trabajo</span>
+                    <span className="font-bold text-gray-800 text-lg">{request.zona}</span>
+                  </div>
+                </div>
+              )}
+
+              {(request.comp_am || request.comp_pm) && (
+                <div className="p-4 bg-white rounded-2xl border border-green-200 hover:border-green-300 transition-all duration-200">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="bg-green-100 p-3 rounded-xl">
+                      <Users className="w-5 h-5 text-green-600" />
                     </div>
-                    <div className="ml-6 space-y-1">
-                      {request.comp_am && (
-                        <div className="text-sm">
-                          <span className="text-gray-500">AM:</span>
-                          <span className="ml-2 font-medium">{request.comp_am}</span>
-                        </div>
-                      )}
-                      {request.comp_pm && (
-                        <div className="text-sm">
-                          <span className="text-gray-500">PM:</span>
-                          <span className="ml-2 font-medium">{request.comp_pm}</span>
-                        </div>
-                      )}
-                    </div>
+                    <span className="font-medium text-gray-800 text-lg">Equipo de trabajo</span>
                   </div>
-                )}
+                  <div className="space-y-3 ml-16">
+                    {request.comp_am && (
+                      <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-green-200/30">
+                        <span className="text-xs bg-green-600 text-white px-3 py-1 rounded-full font-bold">
+                          AM
+                        </span>
+                        <span className="font-semibold text-gray-800">{request.comp_am}</span>
+                      </div>
+                    )}
+                    {request.comp_pm && (
+                      <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-green-200/30">
+                        <span className="text-xs bg-green-500 text-white px-3 py-1 rounded-full font-bold">
+                          PM
+                        </span>
+                        <span className="font-semibold text-gray-800">{request.comp_pm}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
-                {request.turno && (
-                  <div className="flex items-center text-sm">
-                    <Clock className="w-4 h-4 text-blue-600 mr-2" />
-                    <span className="text-gray-600">Turno:</span>
-                    <span className="ml-2 font-medium">{request.turno}</span>
+              {request.turno && (
+                <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-green-200 hover:border-green-300 transition-all duration-200">
+                  <div className="bg-green-100 p-3 rounded-xl">
+                    <Zap className="w-5 h-5 text-green-600" />
                   </div>
-                )}
-              </div>
-
-              {/* Descripción de mi solicitud */}
-              {request.description && (
-                <div>
-                  <div className="flex items-center mb-2">
-                    <FileText className="w-4 h-4 text-blue-600 mr-2" />
-                    <span className="text-sm font-medium text-gray-700">Descripción:</span>
-                  </div>
-                  <div className="bg-white rounded-lg p-3 border border-blue-200">
-                    <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{request.description}</p>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-sm text-gray-600 block font-medium">Turno asignado</span>
+                    <span className="font-bold text-gray-800 text-lg">{request.turno}</span>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Respuesta (solo si existe) */}
-            {request.respuesta && (
-              <div
-                className={`rounded-lg p-4 border ${
-                  request.status === "approved"
-                    ? "bg-emerald-50 border-emerald-200"
-                    : request.status === "rejected"
-                      ? "bg-red-50 border-red-200"
-                      : "bg-amber-50 border-amber-200"
-                }`}
-              >
-                <div className="flex items-center mb-3">
-                  <div
-                    className={`p-2 rounded-lg mr-3 ${
-                      request.status === "approved"
-                        ? "bg-emerald-500"
-                        : request.status === "rejected"
-                          ? "bg-red-500"
-                          : "bg-amber-500"
-                    }`}
-                  >
-                    <MessageSquare className="w-4 h-4 text-white" />
+            {request.description && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="bg-green-100 p-3 rounded-xl">
+                    <FileText className="w-5 h-5 text-green-600" />
                   </div>
-                  <h3
-                    className={`font-semibold ${
-                      request.status === "approved"
-                        ? "text-emerald-800"
-                        : request.status === "rejected"
-                          ? "text-red-800"
-                          : "text-amber-800"
-                    }`}
-                  >
-                    Respuesta del Administrador
-                  </h3>
+                  <span className="font-bold text-gray-800 text-lg">Descripción detallada</span>
                 </div>
-
-                <div className="bg-white rounded-lg p-3 border border-gray-200">
-                  <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{request.respuesta}</p>
+                <div className="bg-white rounded-2xl p-6 border border-green-200 shadow-sm">
+                  <p className="text-gray-800 leading-relaxed whitespace-pre-wrap text-pretty font-medium text-lg">
+                    {request.description}
+                  </p>
                 </div>
-              </div>
-            )}
-
-            {/* Si no hay respuesta y está pendiente */}
-            {!request.respuesta && request.status === "pending" && (
-              <div className="bg-amber-50 rounded-lg p-4 border border-amber-200 text-center">
-                <div className="bg-amber-500 p-2 rounded-lg w-fit mx-auto mb-2">
-                  <Clock className="w-4 h-4 text-white" />
-                </div>
-                <p className="text-sm text-amber-800 font-medium">Tu solicitud está siendo revisada</p>
-                <p className="text-xs text-amber-600 mt-1">Recibirás una respuesta pronto</p>
               </div>
             )}
           </div>
+
+          {request.respuesta && (
+            <div
+              className={`${statusConfig.cardBg} rounded-3xl p-8 border-2 ${statusConfig.cardBorder} shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden`}
+            >
+              {/* Decorative elements */}
+              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -translate-y-12 translate-x-12"></div>
+
+              <div className="flex items-center gap-4 mb-6 relative z-10">
+                <div className={`${statusConfig.iconBg} p-4 rounded-2xl shadow-lg`}>
+                  <Shield className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-xl text-gray-800">Respuesta Oficial</h3>
+                  <p className="text-gray-600 font-medium">Decisión del administrador sobre tu solicitud</p>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl p-6 border border-green-200 shadow-lg relative z-10">
+                <p className="text-gray-800 leading-relaxed whitespace-pre-wrap text-pretty font-medium text-lg">
+                  {request.respuesta}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {!request.respuesta && request.status === "pending" && (
+            <div className="bg-green-50 rounded-3xl p-8 border-2 border-green-200 text-center shadow-lg relative overflow-hidden">
+              <div className="absolute inset-0 bg-green-100 opacity-20"></div>
+
+              <div className="relative z-10">
+                <div className="bg-green-600 p-6 rounded-3xl w-fit mx-auto mb-6 shadow-lg">
+                  <Clock className="w-8 h-8 text-white mx-auto" />
+                </div>
+                <h3 className="font-bold text-2xl text-gray-800 mb-3">Solicitud en Revisión</h3>
+                <p className="text-gray-600 mb-2 font-medium text-lg">
+                  Tu solicitud está siendo evaluada por nuestro equipo
+                </p>
+                <p className="text-gray-600 font-medium">Te notificaremos cuando tengamos una respuesta</p>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Botón de cerrar */}
-        <div className="p-4 border-t border-gray-200">
-          <Button variant="outline" className="w-full rounded-lg" onClick={() => onOpenChange(false)}>
-            Cerrar
+        <div className="flex-shrink-0 p-4 sm:p-6 border-t border-green-200 bg-white">
+          <Button
+            className="w-full rounded-xl h-12 font-bold text-base bg-green-600 text-white hover:bg-green-700 transition-all duration-200 shadow-md hover:shadow-lg"
+            onClick={() => onOpenChange(false)}
+          >
+            Cerrar Solicitud
           </Button>
         </div>
       </DialogContent>

@@ -467,7 +467,7 @@ const getFixedRangeDates = () => {
   }
 
   // Añadir el día 18 por ser festivo
-  const festiveDate = new Date(2025, 7, 18) // 18 de agosto
+  const festiveDate = new Date(2025, 8, 8) // 18 de agosto
   dates.push({
     date: festiveDate,
     formattedDate: format(festiveDate, "EEEE, d 'de' MMMM", { locale: es }) + " (Festivo)",

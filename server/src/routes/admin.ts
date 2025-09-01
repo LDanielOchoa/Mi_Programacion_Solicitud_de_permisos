@@ -448,7 +448,8 @@ admin.get('/requests', getCurrentUser, requireAdmin, async (c) => {
           UNION ALL
           (SELECT p.solicitud FROM permit_post p
            LEFT JOIN users u ON p.code = u.code
-           ${wherePost.length > 0 ? ' WHERE ' + wherePost.join(' AND ') : ''})
+           ${dateFilterPost}
+           ${wherePost.length > 0 ? (dateFilterPost ? ' AND ' : ' WHERE ') + wherePost.join(' AND ') : ''})
         ) as all_requests
         GROUP BY solicitud
       `;

@@ -1,7 +1,5 @@
 "use client"
 
-import type React from "react"
-
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence, useInView } from "framer-motion"
 import {
@@ -19,13 +17,13 @@ import {
   RefreshCw,
   Download,
   SlidersHorizontal,
-  Plus,
   ArrowUpDown,
   Filter,
   Eye,
   FileSpreadsheet,
   Phone,
   MessageSquare,
+  BarChartBig as ChartBar,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -408,153 +406,165 @@ export default function Solicitudes() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay }}
-        className="mb-4"
+        className="mb-6"
       >
-        <Card
-          className="overflow-hidden border shadow-sm hover:shadow-md transition-all duration-300 rounded-xl"
-        >
-          {/* Barra de estado en la parte superior */}
+        <Card className="group overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-500 rounded-3xl bg-gradient-to-br from-white to-green-50/30 hover:from-green-50/50 hover:to-white backdrop-blur-sm">
+          {/* Enhanced status bar with gradient */}
           <div
-            className={`h-2 ${
-              request.status === "approved"
-                ? "bg-emerald-500"
+            className={`h-1.5 bg-gradient-to-r ${request.status === "approved"
+                ? "from-emerald-400 via-emerald-500 to-emerald-600"
                 : request.status === "pending"
-                  ? "bg-amber-500"
-                  : "bg-red-500"
-            }`}
-          ></div>
+                  ? "from-amber-400 via-amber-500 to-amber-600"
+                  : "from-red-400 via-red-500 to-red-600"
+              }`}
+          />
 
-          <CardContent className="p-4">
-            {/* Encabezado con tipo y estado */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
+          <CardContent className="p-6">
+            {/* Enhanced header with better visual hierarchy */}
+            <div className="flex items-start justify-between mb-5">
+              <div className="flex items-center gap-4">
                 <div
-                  className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                    request.status === "approved"
-                      ? "bg-emerald-500"
+                  className={`h-14 w-14 rounded-2xl flex items-center justify-center shadow-lg transform group-hover:scale-105 transition-transform duration-300 ${request.status === "approved"
+                      ? "bg-gradient-to-br from-emerald-400 to-emerald-600"
                       : request.status === "pending"
-                        ? "bg-amber-500"
-                        : "bg-red-500"
-                  } text-white`}
+                        ? "bg-gradient-to-br from-amber-400 to-amber-600"
+                        : "bg-gradient-to-br from-red-400 to-red-600"
+                    } text-white`}
                 >
                   {getStatusIcon(request.status)}
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900">{request.tipo_novedad}</h3>
-                  <p className="text-xs text-gray-500">{formatDate(request.createdAt)}</p>
+                  <h3 className="font-bold text-lg text-gray-900 mb-1">{request.tipo_novedad}</h3>
+                  <p className="text-sm text-gray-500 flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {formatDate(request.createdAt)}
+                  </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col items-end gap-2">
                 <Badge
                   variant="outline"
-                  className={`${getTypeColor(request.request_type)} border-none text-xs px-2 py-0.5 rounded-full`}
+                  className={`${getTypeColor(request.request_type)} border-2 text-sm px-3 py-1 rounded-full font-medium shadow-sm`}
                 >
                   {getTypeText(request.request_type)}
                 </Badge>
                 <Badge
-                  className={`text-xs px-2 py-0.5 rounded-full ${
-                    request.status === "approved"
-                      ? "bg-emerald-100 text-emerald-800"
+                  className={`text-sm px-3 py-1 rounded-full font-medium shadow-sm ${request.status === "approved"
+                      ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
                       : request.status === "pending"
-                        ? "bg-amber-100 text-amber-800"
-                        : "bg-red-100 text-red-800"
-                  }`}
+                        ? "bg-amber-100 text-amber-800 border border-amber-200"
+                        : "bg-red-100 text-red-800 border border-red-200"
+                    }`}
                 >
                   #{request.code}
                 </Badge>
               </div>
             </div>
 
-            {/* Información clave */}
-            <div className="grid grid-cols-2 gap-2 mb-3">
+            {/* Enhanced information grid with better spacing and visual elements */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
               {request.fecha && (
-                <div className="flex items-center text-gray-700">
-                  <div className="bg-green-100 p-1.5 rounded-md mr-2">
-                    <Calendar className="w-3.5 h-3.5 text-green-600" />
+                <div className="flex items-center p-3 bg-white/60 rounded-2xl border border-green-100 hover:bg-green-50/50 transition-colors duration-300">
+                  <div className="bg-gradient-to-br from-green-100 to-green-200 p-2.5 rounded-xl mr-3 shadow-sm">
+                    <Calendar className="w-4 h-4 text-green-700" />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Fecha solicitada</p>
-                    <p className="text-sm font-medium">{request.fecha}</p>
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Fecha solicitada</p>
+                    <p className="text-sm font-semibold text-gray-800">{request.fecha}</p>
                   </div>
                 </div>
               )}
 
               {request.telefono && (
-                <div className="flex items-center text-gray-700">
-                  <div className="bg-purple-100 p-1.5 rounded-md mr-2">
-                    <Phone className="w-3.5 h-3.5 text-purple-600" />
+                <div className="flex items-center p-3 bg-white/60 rounded-2xl border border-green-100 hover:bg-green-50/50 transition-colors duration-300">
+                  <div className="bg-gradient-to-br from-emerald-100 to-emerald-200 p-2.5 rounded-xl mr-3 shadow-sm">
+                    <Phone className="w-4 h-4 text-emerald-700" />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Contacto</p>
-                    <p className="text-sm font-medium">{request.telefono}</p>
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Contacto</p>
+                    <p className="text-sm font-semibold text-gray-800">{request.telefono}</p>
                   </div>
                 </div>
               )}
 
               {request.zona && (
-                <div className="flex items-center text-gray-700">
-                  <div className="bg-blue-100 p-1.5 rounded-md mr-2">
-                    <MapPin className="w-3.5 h-3.5 text-blue-600" />
+                <div className="flex items-center p-3 bg-white/60 rounded-2xl border border-green-100 hover:bg-green-50/50 transition-colors duration-300">
+                  <div className="bg-gradient-to-br from-teal-100 to-teal-200 p-2.5 rounded-xl mr-3 shadow-sm">
+                    <MapPin className="w-4 h-4 text-teal-700" />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Zona</p>
-                    <p className="text-sm font-medium">{request.zona}</p>
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Zona</p>
+                    <p className="text-sm font-semibold text-gray-800">{request.zona}</p>
                   </div>
                 </div>
               )}
 
               {request.hora && (
-                <div className="flex items-center text-gray-700">
-                  <div className="bg-amber-100 p-1.5 rounded-md mr-2">
-                    <Clock className="w-3.5 h-3.5 text-amber-600" />
+                <div className="flex items-center p-3 bg-white/60 rounded-2xl border border-green-100 hover:bg-green-50/50 transition-colors duration-300">
+                  <div className="bg-gradient-to-br from-lime-100 to-lime-200 p-2.5 rounded-xl mr-3 shadow-sm">
+                    <Clock className="w-4 h-4 text-lime-700" />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Horario</p>
-                    <p className="text-sm font-medium">{request.hora}</p>
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Horario</p>
+                    <p className="text-sm font-semibold text-gray-800">{request.hora}</p>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Descripción */}
+            {/* Enhanced description section */}
             {request.description && (
-              <div className="mb-2">
-                <div className="flex items-start">
-                  <div className="bg-gray-100 p-1.5 rounded-md mr-2 mt-0.5">
-                    <FileText className="w-3.5 h-3.5 text-gray-600" />
+              <div className="mb-4 p-4 bg-white/60 rounded-2xl border border-green-100">
+                <div className="flex items-start gap-3">
+                  <div className="bg-gradient-to-br from-gray-100 to-gray-200 p-2.5 rounded-xl shadow-sm">
+                    <FileText className="w-4 h-4 text-gray-700" />
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Descripción</p>
-                    <p className="text-sm text-gray-700 line-clamp-1">{request.description}</p>
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Descripción</p>
+                    <p className="text-sm text-gray-700 leading-relaxed">{request.description}</p>
                   </div>
                 </div>
               </div>
             )}
-            
-            {/* Respuesta del administrador */}
+
+            {/* Enhanced admin response section */}
             {request.respuesta && (
-              <div className="mt-2">
-                <div className="flex items-start">
-                  <div className={`p-1.5 rounded-md mr-2 mt-0.5 ${request.status === "approved" ? "bg-emerald-100" : request.status === "rejected" ? "bg-red-100" : "bg-amber-100"}`}>
-                    <MessageSquare className={`w-3.5 h-3.5 ${request.status === "approved" ? "text-emerald-600" : request.status === "rejected" ? "text-red-600" : "text-amber-600"}`} />
+              <div className="mb-4 p-4 bg-white/60 rounded-2xl border border-green-100">
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`p-2.5 rounded-xl shadow-sm ${request.status === "approved"
+                        ? "bg-gradient-to-br from-emerald-100 to-emerald-200"
+                        : request.status === "rejected"
+                          ? "bg-gradient-to-br from-red-100 to-red-200"
+                          : "bg-gradient-to-br from-amber-100 to-amber-200"
+                      }`}
+                  >
+                    <MessageSquare
+                      className={`w-4 h-4 ${request.status === "approved"
+                          ? "text-emerald-700"
+                          : request.status === "rejected"
+                            ? "text-red-700"
+                            : "text-amber-700"
+                        }`}
+                    />
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Respuesta</p>
-                    <p className="text-sm text-gray-700 line-clamp-2">{request.respuesta}</p>
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Respuesta</p>
+                    <p className="text-sm text-gray-700 leading-relaxed">{request.respuesta}</p>
                   </div>
                 </div>
               </div>
             )}
-            
-            {/* Botón para ver detalles */}
-            <div className="flex justify-end mt-3">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 flex items-center gap-1"
+
+            {/* Enhanced action button */}
+            <div className="flex justify-end pt-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-green-700 hover:text-green-800 hover:bg-green-100 flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-300 group-hover:bg-green-50"
                 onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedRequest(request);
+                  e.stopPropagation()
+                  setSelectedRequest(request)
                 }}
               >
                 <Eye className="h-4 w-4" />
@@ -724,7 +734,7 @@ export default function Solicitudes() {
                         {Math.round(
                           (filteredRequests.filter((r) => r.status === "approved").length /
                             Math.max(filteredRequests.length, 1)) *
-                            100,
+                          100,
                         )}
                         %
                       </Badge>
@@ -751,7 +761,7 @@ export default function Solicitudes() {
                         {Math.round(
                           (filteredRequests.filter((r) => r.status === "rejected").length /
                             Math.max(filteredRequests.length, 1)) *
-                            100,
+                          100,
                         )}
                         %
                       </Badge>
@@ -781,7 +791,7 @@ export default function Solicitudes() {
                         {Math.round(
                           (filteredRequests.filter((r) => r.status === "pending").length /
                             Math.max(filteredRequests.length, 1)) *
-                            100,
+                          100,
                         )}
                         %
                       </Badge>
@@ -811,7 +821,7 @@ export default function Solicitudes() {
                         {Math.round(
                           (filteredRequests.filter((r) => r.request_type === "permiso").length /
                             Math.max(filteredRequests.length, 1)) *
-                            100,
+                          100,
                         )}
                         %
                       </Badge>
@@ -841,7 +851,7 @@ export default function Solicitudes() {
                         {Math.round(
                           (filteredRequests.filter((r) => r.request_type === "postulaciones").length /
                             Math.max(filteredRequests.length, 1)) *
-                            100,
+                          100,
                         )}
                         %
                       </Badge>
@@ -853,19 +863,6 @@ export default function Solicitudes() {
                   </motion.div>
                 </div>
               </CardContent>
-              <CardFooter className="bg-gradient-to-r from-green-50 to-emerald-50 py-4 px-6 border-t border-green-100">
-                <p className="text-sm text-green-700 font-medium">Total de solicitudes: {filteredRequests.length}</p>
-                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="ml-auto">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-green-700 hover:bg-green-100 hover:text-green-800 border-green-200 rounded-xl"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Exportar datos
-                  </Button>
-                </motion.div>
-              </CardFooter>
             </Card>
           </motion.div>
         </div>
@@ -884,7 +881,7 @@ export default function Solicitudes() {
             </div>
             <Drawer open={isFilterDrawerOpen} onOpenChange={setIsFilterDrawerOpen}>
               <DrawerTrigger asChild>
-                <Button variant="outline" className="border-green-200 text-green-700 rounded-xl">
+                <Button variant="outline" className="border-green-200 text-green-700 rounded-xl bg-transparent">
                   <Filter className="h-4 w-4" />
                 </Button>
               </DrawerTrigger>
@@ -1136,8 +1133,8 @@ export default function Solicitudes() {
                     <ScrollArea className="h-[calc(100vh-450px)] min-h-[300px] pr-4">
                       {isLoading
                         ? Array(5)
-                            .fill(0)
-                            .map((_, index) => renderSkeletonCard(index))
+                          .fill(0)
+                          .map((_, index) => renderSkeletonCard(index))
                         : filteredRequests.length === 0
                           ? renderEmptyState()
                           : filteredRequests.map((request, index) => renderRequestCard(request, index))}
@@ -1150,9 +1147,24 @@ export default function Solicitudes() {
                       <ScrollArea className="h-[calc(100vh-450px)] min-h-[300px] pr-4">
                         {isLoading
                           ? Array(5)
-                              .fill(0)
-                              .map((_, index) => renderSkeletonCard(index))
+                            .fill(0)
+                            .map((_, index) => renderSkeletonCard(index))
                           : filteredRequests.filter((r) =>
+                            tab === "approved"
+                              ? r.status === "approved"
+                              : tab === "pending"
+                                ? r.status === "pending"
+                                : tab === "rejected"
+                                  ? r.status === "rejected"
+                                  : tab === "permisos"
+                                    ? r.request_type === "permiso"
+                                    : tab === "postulaciones"
+                                      ? r.request_type === "postulaciones"
+                                      : true,
+                          ).length === 0
+                            ? renderEmptyState()
+                            : filteredRequests
+                              .filter((r) =>
                                 tab === "approved"
                                   ? r.status === "approved"
                                   : tab === "pending"
@@ -1164,23 +1176,8 @@ export default function Solicitudes() {
                                         : tab === "postulaciones"
                                           ? r.request_type === "postulaciones"
                                           : true,
-                              ).length === 0
-                            ? renderEmptyState()
-                            : filteredRequests
-                                .filter((r) =>
-                                  tab === "approved"
-                                    ? r.status === "approved"
-                                    : tab === "pending"
-                                      ? r.status === "pending"
-                                      : tab === "rejected"
-                                        ? r.status === "rejected"
-                                        : tab === "permisos"
-                                          ? r.request_type === "permiso"
-                                          : tab === "postulaciones"
-                                            ? r.request_type === "postulaciones"
-                                            : true,
-                                )
-                                .map((request, index) => renderRequestCard(request, index))}
+                              )
+                              .map((request, index) => renderRequestCard(request, index))}
                       </ScrollArea>
                     </TabsContent>
                   ))}
@@ -1202,27 +1199,5 @@ export default function Solicitudes() {
       {/* Bottom Navigation */}
       <BottomNavigation hasNewNotification={hasNewNotification} />
     </div>
-  )
-}
-
-// Componente ChartBar para iconos
-function ChartBar(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <line x1="12" x2="12" y1="20" y2="10" />
-      <line x1="18" x2="18" y1="20" y2="4" />
-      <line x1="6" x2="6" y1="20" y2="16" />
-    </svg>
   )
 }

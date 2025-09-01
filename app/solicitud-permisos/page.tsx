@@ -160,7 +160,7 @@ const getCalendarDatesWithHolidays = () => {
 // Función para fechas del 11 al 18 de agosto (incluyendo el 18 por ser festivo)
 const getFixedRangeDates = () => {
   // El 11 de agosto de 2025 es un lunes. Month es 0-indexed, so 7 es agosto.
-  const startDate = new Date(2025, 7, 11)
+  const startDate = new Date(2025, 8, 8)
   const dates: DateInfo[] = []
 
   // Generar fechas del 11 al 17 (7 días)
@@ -170,14 +170,6 @@ const getFixedRangeDates = () => {
     const shortDate = format(date, "yyyy-MM-dd", { locale: es })
     dates.push({ date, formattedDate, shortDate })
   }
-
-  // Añadir el día 18 por ser festivo
-  const festiveDate = new Date(2025, 7, 18) // 18 de agosto
-  dates.push({
-    date: festiveDate,
-    formattedDate: format(festiveDate, "EEEE, d 'de' MMMM", { locale: es }) + " (Festivo)",
-    shortDate: format(festiveDate, "yyyy-MM-dd", { locale: es }),
-  })
 
   return {
     regularDates: dates,

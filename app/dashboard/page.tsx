@@ -522,19 +522,6 @@ export default function Dashboard() {
       features: ["Proceso simplificado", "Aprobación rápida", "Seguimiento en tiempo real"],
     },
     {
-      title: "Postulaciones",
-      description: "Gestiona turnos, disponibilidad y oportunidades laborales",
-      icon: FileText, // Changed from Briefcase to FileText
-      href: "/solicitud-equipo",
-      gradient: "from-emerald-400 via-emerald-500 to-emerald-600",
-      bgPattern: "bg-emerald-50",
-      iconBg: "bg-emerald-100",
-      textColor: "text-emerald-700",
-      action: "Ver postulaciones",
-      features: ["Turnos disponibles", "Gestión flexible", "Notificaciones automáticas"],
-      hideForMaintenance: true, // Hide for maintenance users
-    },
-    {
       title: "Mis Solicitudes",
       description: "Revisa el estado y historial completo de todas tus solicitudes",
       icon: FileText, // Changed from List to FileText
@@ -900,7 +887,7 @@ export default function Dashboard() {
                   Acceso rápido
                 </Button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 lg:gap-8">
                 {quickAccessCards.map((card, index) => (
                   <Link href={card.href} key={card.title}>
                     <InteractiveCard delay={index * 0.15} hoverScale={1.05}>
