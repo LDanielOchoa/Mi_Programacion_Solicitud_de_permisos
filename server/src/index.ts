@@ -24,6 +24,7 @@ import users from './routes/users.js';
 import operator from './routes/operator.js';
 import statistics from './routes/statistics.js';
 import images from './routes/images.js';
+import userContext from './routes/user-context.js';
 
 const app = new Hono();
 
@@ -44,6 +45,7 @@ app.route('/users', users);
 app.route('/operator', operator);
 app.route('/statistics', statistics);
 app.route('/images', images);
+app.route('/user-context', userContext);
 
 // Ruta raíz
 app.get('/', (c) => c.text('Servidor Hono funcionando!'));

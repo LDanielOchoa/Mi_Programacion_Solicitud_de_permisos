@@ -54,46 +54,42 @@ export const getCurrentUser = async (c: Context, next: Next) => {
       throw new HTTPException(401, { message: 'Token expirado' });
     }
     
-    const cacheKey = `user:${payload.sub}`;
-    let user = cache.get<User>(cacheKey);
-
+    // Deshabilitar cache completamente para evitar mezcla de contextos
+    // Siempre consultar directamente la base de datos
+    logger.debug({ sub: payload.sub }, 'Consultando usuario directamente desde DB (sin cache)');
+    let user = await executeQuery<User>(
+      'SELECT * FROM users WHERE code = ?',
+      [payload.sub],
+      { fetchOne: true }
+    );
+    
+    // Si no se encuentra en users, buscar en SE_w0550
     if (!user) {
-      logger.debug({ cacheKey }, 'Usuario no encontrado en caché, consultando DB');
-      user = await executeQuery<User>(
-        'SELECT * FROM users WHERE code = ?',
-        [payload.sub],
-        { fetchOne: true }
-      );
-      
-      // Si no se encuentra en users, buscar en SE_w0550
-      if (!user) {
-        logger.debug({ sub: payload.sub }, 'Usuario no encontrado en tabla users, buscando en SE_w0550');
-        const employee = await getEmployeeFromSE(payload.sub);
-        if (employee) {
-          // Crear objeto User compatible desde datos de SE_w0550
-          user = {
-            code: employee.cedula,
-            name: employee.nombre,
-            telefone: '', 
-            cargo: employee.cargo,
-            role: 'employee', 
-            password: '', 
-            email: employee.email || '',
-            userType: 'se_maintenance' // Marcar como usuario de SE_w0550
-          } as User;
-          logger.info({ 
-            cedula: employee.cedula, 
-            nombre: employee.nombre, 
-            userType: 'se_maintenance',
-            centroCosto: employee.centroCosto 
-          }, 'Usuario de mantenimiento encontrado en SE_w0550');
-        }
+      logger.debug({ sub: payload.sub }, 'Usuario no encontrado en tabla users, buscando en SE_w0550');
+      const employee = await getEmployeeFromSE(payload.sub);
+      if (employee) {
+        // Crear objeto User compatible desde datos de SE_w0550
+        user = {
+          code: employee.cedula,
+          name: employee.nombre,
+          telefone: '', 
+          cargo: employee.cargo,
+          role: 'employee', 
+          password: '', 
+          email: employee.email || '',
+          userType: 'se_maintenance' // Marcar como usuario de SE_w0550
+        } as User;
+        logger.info({ 
+          cedula: employee.cedula, 
+          nombre: employee.nombre, 
+          userType: 'se_maintenance',
+          centroCosto: employee.centroCosto 
+        }, 'Usuario de mantenimiento encontrado en SE_w0550');
       }
-      
-      if (user) {
-        cache.set(cacheKey, user, 300); // Cache por 5 minutos
-        logger.debug({ cacheKey }, 'Usuario guardado en caché');
-      }
+    }
+    
+    if (user) {
+      logger.debug({ userCode: user.code, role: user.role }, 'Usuario encontrado y validado');
     }
     
     if (!user) {
@@ -139,29 +135,21 @@ export const requireAdmin = async (c: Context, next: Next) => {
 
 // Función para refrescar caché de usuario
 export const refreshUserCache = async (userCode: string): Promise<void> => {
-  const cacheKey = `user:${userCode}`;
-  cache.del(cacheKey);
-  logger.info({ userCode }, 'Caché de usuario invalidado');
+  // Como no tenemos un método de invalidación por patrón en el cache simple,
+  // limpiamos todo el cache para asegurar consistencia
+  cache.flush();
+  logger.info({ userCode }, 'Caché de usuario invalidado completamente');
 };
 
-// Función para obtener usuario por código (con caché)
+// Función para obtener usuario por código (sin caché para evitar mezcla de contextos)
 export const getUserByCode = async (code: string): Promise<User | null> => {
-  const cacheKey = `user:${code}`;
-  let user = cache.get<User>(cacheKey);
-
-  if (user) {
-    return user;
-  }
-
   try {
-    user = await executeQuery<User>(
+    const user = await executeQuery<User>(
       'SELECT * FROM users WHERE code = ?',
       [code],
       { fetchOne: true }
     );
-    if (user) {
-      cache.set(cacheKey, user, 300);
-    }
+    logger.debug({ userCode: code, found: !!user }, 'Usuario consultado directamente desde DB');
     return user || null;
   } catch (error) {
     logger.error({ err: error, code }, 'Error al obtener usuario por código');

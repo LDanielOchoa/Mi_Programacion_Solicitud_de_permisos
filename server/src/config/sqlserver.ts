@@ -517,7 +517,7 @@ export async function getEmployeeFromOperations(cedula: string) {
           ROW_NUMBER() OVER (ORDER BY f_ndc DESC, f_parametro DESC) as rn
         FROM UNOEE.dbo.SE_w0550 
         WHERE f_nit_empl = @cedula 
-        AND f_desc_Ccosto = 'Gestion de Operaciones'
+        AND f_desc_Ccosto IN ('Gestion de Operaciones', 'Operador Vehículo', 'Operador Dual')
       ) ranked
       WHERE ranked.rn = 1
     `;

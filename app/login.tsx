@@ -693,6 +693,10 @@ export default function LoginPage(): ReactElement {
             localStorage.setItem("userName", "Administrador")
           }
 
+          // Trigger a storage event to notify RBAC context of the new token
+          console.log('🔐 LOGIN: Token stored, triggering storage event');
+          window.dispatchEvent(new Event('storage'));
+
           setShowSuccessAnimation(true)
 
           setTimeout(() => {
@@ -700,6 +704,7 @@ export default function LoginPage(): ReactElement {
               setShowAdminModal(true)
               setShowSuccessAnimation(false)
             } else {
+              console.log('🔐 LOGIN: Redirecting to dashboard after delay');
               router.push("/dashboard")
             }
           }, 1500)

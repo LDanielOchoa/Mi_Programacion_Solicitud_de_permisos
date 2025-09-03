@@ -2,6 +2,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import PageTransition from "@/components/page-transition";
+import { RBACProvider } from "@/components/RBACProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -32,7 +33,9 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/image.png" />
       </head>
       <body className={inter.className}>
-        <PageTransition>{children}</PageTransition>
+        <RBACProvider>
+          <PageTransition>{children}</PageTransition>
+        </RBACProvider>
         <Toaster />
       </body>
     </html>

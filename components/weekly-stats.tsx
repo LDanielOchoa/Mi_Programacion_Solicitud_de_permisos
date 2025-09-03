@@ -1,10 +1,10 @@
 "use client"
 
-import React, { useState, useCallback, useMemo, useEffect } from "react"
+import React, { useState, useEffect, useCallback, useMemo, memo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { createPortal } from "react-dom"
-import { format, getWeek, startOfWeek, endOfWeek } from "date-fns"
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, parseISO, isSameDay, getWeek } from "date-fns"
 import { es } from "date-fns/locale"
+import { useRBACContext } from "./RBACProvider"
 import {
   Activity,
   ChevronLeft,
@@ -611,20 +611,10 @@ const WeeklyStats = React.memo(({ requests }: WeeklyStatsProps) => {
     requests: Request[]
     dateKey: string
   } | null>(null)
-  const [currentUserType, setCurrentUserType] = useState<string | null>(null)
 
-  // Get user data from localStorage to check userType
-  useEffect(() => {
-    const userData = localStorage.getItem('userData')
-    if (userData) {
-      try {
-        const parsedUserData = JSON.parse(userData)
-        setCurrentUserType(parsedUserData.userType || null)
-      } catch (error) {
-        console.error('Error parsing user data in weekly-stats:', error)
-      }
-    }
-  }, [])
+  // Use RBAC context instead of localStorage
+  const { userContext } = useRBACContext()
+  const currentUserType = userContext?.userType
 
   const getTypeIcon = useCallback((type: string) => {
     const icons: Record<string, React.ReactNode> = {

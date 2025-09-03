@@ -92,6 +92,9 @@ interface DateInfo {
   date: Date
   formattedDate: string
   shortDate: string
+  dayName: string
+  dayNumber: string
+  monthName: string
 }
 
 // Reemplazar getCurrentWeekDates por getCurrentWeekMonday
@@ -168,7 +171,14 @@ const getFixedRangeDates = () => {
     const date = addDays(startDate, i)
     const formattedDate = format(date, "EEEE, d 'de' MMMM", { locale: es })
     const shortDate = format(date, "yyyy-MM-dd", { locale: es })
-    dates.push({ date, formattedDate, shortDate })
+    dates.push({ 
+      date, 
+      formattedDate, 
+      shortDate,
+      dayName: format(date, "EEEE", { locale: es }),
+      dayNumber: format(date, "d"),
+      monthName: format(date, "MMMM", { locale: es })
+    })
   }
 
   return {
@@ -191,7 +201,10 @@ const getExtemporaneousDates = () => {
     dates.push({ 
       date: new Date(currentDate), 
       formattedDate, 
-      shortDate 
+      shortDate,
+      dayName: format(currentDate, "EEEE", { locale: es }),
+      dayNumber: format(currentDate, "d"),
+      monthName: format(currentDate, "MMMM", { locale: es })
     })
     currentDate = addDays(currentDate, 1)
   }
@@ -1061,9 +1074,27 @@ export default function PermitRequestForm({ isExtemporaneous = false }: PermitRe
   })
 
   useEffect(() => {
-    const { regularDates } = getFixedRangeDates()
-    setWeekDates(regularDates)
-  }, [])
+    // Si es calamidad, mostrar fechas desde hoy hasta una semana después
+    if (noveltyType === "calamidad") {
+      const today = new Date()
+      const calamityDates = Array.from({ length: 7 }, (_, i) => {
+        const date = addDays(today, i)
+        return {
+          date,
+          formattedDate: format(date, "yyyy-MM-dd"),
+          shortDate: format(date, "dd/MM"),
+          dayName: format(date, "EEEE", { locale: es }),
+          dayNumber: format(date, "d"),
+          monthName: format(date, "MMMM", { locale: es }),
+        }
+      })
+      setWeekDates(calamityDates)
+    } else {
+      // Para otros tipos de novedad, usar el rango fijo normal
+      const { regularDates } = getFixedRangeDates()
+      setWeekDates(regularDates)
+    }
+  }, [noveltyType])
 
   // Función para verificar permisos existentes en todas las fechas disponibles
   const checkAllExistingPermits = useCallback(async () => {

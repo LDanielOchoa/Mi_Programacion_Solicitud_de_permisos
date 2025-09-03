@@ -15,10 +15,17 @@ export async function updateRequestStatus(
   action: 'approve' | 'reject',
   reason: string
 ) {
+  const token = localStorage.getItem('accessToken');
+  
+  if (!token) {
+    throw new Error('Token de autenticación no encontrado');
+  }
+
   const response = await fetch(`${API_URL}/admin/requests/${id}`, {
     method: 'PUT',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
     },
     body: JSON.stringify({
       status: action === 'approve' ? 'approved' : 'rejected',
@@ -34,8 +41,17 @@ export async function updateRequestStatus(
 }
 
 export async function deleteRequest(id: string): Promise<void> {
+  const token = localStorage.getItem('accessToken');
+  
+  if (!token) {
+    throw new Error('Token de autenticación no encontrado');
+  }
+
   const response = await fetch(`${API_URL}/admin/requests/${id}`, {
     method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
   });
 
   if (!response.ok) {

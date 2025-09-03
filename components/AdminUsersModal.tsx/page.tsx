@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import UserAvatar from '../../components/UserAvatar/page';
 import { useOptimizedUserList } from '../../hooks/useOptimizedUserList';
+import { useRBACContext } from '../RBACProvider';
 
 interface Person {
   code: string;
@@ -830,8 +831,14 @@ const BackgroundAnimation = memo(() => (
 
 BackgroundAnimation.displayName = 'BackgroundAnimation';
 
-function App() {
-  // Usar el hook optimizado para la gestión de usuarios
+const AdminUsersModal = ({ isOpen, onClose }: AdminUsersModalProps) => {
+  // Use RBAC context for token and userType
+  const { userContext } = useRBACContext();
+  
+  console.log('🔍 AdminUsersModal userContext:', userContext);
+  console.log('🔍 AdminUsersModal userType:', userContext?.userType);
+
+  // Hook de lista optimizada de usuarios - usando el hook personalizado para manejo eficiente
   const {
     people,
     loading,
@@ -848,7 +855,7 @@ function App() {
     clearApiError,
     refreshUsers,
     updatePerson,
-  } = useOptimizedUserList();
+  } = useOptimizedUserList({ userType: userContext?.userType });
 
   // Estados locales para el modal y operaciones específicas
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
@@ -862,10 +869,15 @@ function App() {
   const [operatorInfo, setOperatorInfo] = useState<OperatorInfo | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Helper function to get token consistently
+  const getAuthToken = useCallback(() => {
+    return localStorage.getItem("accessToken");
+  }, []);
+  
   // Función de búsqueda por cédula optimizada
   const searchByCedula = useCallback(async (cedula: string): Promise<OperatorInfo | null> => {
     try {
-      const token = localStorage.getItem("accessToken");
+      const token = getAuthToken();
       if (!token) {
         throw new Error("No se encontró el token de acceso");
       }
@@ -939,7 +951,7 @@ function App() {
     setCedulaError('');
 
     try {
-      const token = localStorage.getItem("accessToken");
+      const token = getAuthToken();
       if (!token) {
         throw new Error("No se encontró el token de acceso");
       }
@@ -1753,4 +1765,4 @@ function App() {
   );
 }
 
-export default App;
+export default AdminUsersModal;

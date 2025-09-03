@@ -91,11 +91,11 @@ export const usePermits = (activeTab: string, userTypeFilter?: string | null) =>
       const token = localStorage.getItem("accessToken")
 
       if (!token) {
-        toast({
-          title: "Error de autenticación",
-          description: "No se encontró token de acceso. Por favor, inicie sesión de nuevo.",
-          variant: "destructive",
-        })
+        // Si no hay token, simplemente no cargar datos sin mostrar error
+        // Esto evita errores molestos durante el logout
+        setRequests([])
+        setGroupedRequests({})
+        setFilteredRequests({})
         return
       }
 

@@ -41,6 +41,10 @@ interface UseOptimizedUserListReturn {
   updatePerson: (person: Person) => void;
 }
 
+interface UseOptimizedUserListOptions {
+  userType?: string | null;
+}
+
 const ITEMS_PER_PAGE = 8;
 const DEBOUNCE_DELAY = 300;
 
@@ -134,29 +138,15 @@ const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
   }
 };
 
-// Función para obtener el userType desde localStorage
-const getCurrentUserType = (): string | null => {
-  if (typeof window === 'undefined') return null;
-  
+const fetchUsers = async (page: number, searchTerm: string, area: string, userType?: string | null): Promise<{ data: Person[], pagination: PaginationInfo }> => {
   try {
-    const userData = localStorage.getItem('userData');
-    if (userData) {
-      const parsedUserData = JSON.parse(userData);
-      return parsedUserData.userType || null;
-    }
-  } catch (error) {
-    console.error('Error parsing user data:', error);
-  }
-  return null;
-};
-
-const fetchUsers = async (page: number, searchTerm: string, area: string): Promise<{ data: Person[], pagination: PaginationInfo }> => {
-  try {
-    const userType = getCurrentUserType();
+    console.log('🔍 fetchUsers called with userType:', userType);
     
     // Si es usuario de mantenimiento, usar endpoint específico
     if (userType === 'se_maintenance') {
+      console.log('📋 Using maintenance endpoint for se_maintenance user');
       const response = await apiRequest('/admin/maintenance-employees');
+      console.log('📋 Maintenance response:', response);
       
       if (!response || typeof response !== 'object') {
         throw new Error('Respuesta inválida del servidor');
@@ -272,7 +262,8 @@ const fetchUsers = async (page: number, searchTerm: string, area: string): Promi
   }
 };
 
-export const useOptimizedUserList = (): UseOptimizedUserListReturn => {
+export const useOptimizedUserList = (options?: UseOptimizedUserListOptions): UseOptimizedUserListReturn => {
+  const { userType } = options || {};
   const [people, setPeople] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -304,7 +295,7 @@ export const useOptimizedUserList = (): UseOptimizedUserListReturn => {
       }
       setApiError('');
       
-      const { data, pagination: newPagination } = await fetchUsers(validPage, validSearch, validArea);
+      const { data, pagination: newPagination } = await fetchUsers(validPage, validSearch, validArea, userType);
       
       // Validar que los datos recibidos sean válidos
       if (!Array.isArray(data)) {

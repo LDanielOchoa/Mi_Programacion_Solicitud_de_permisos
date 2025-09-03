@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { useTokenRefresh } from "@/hooks/use-token-refresh"
+import { useRBACContext, PermissionGuard } from "@/components/RBACProvider"
 import {
   FileText,
   BarChart,
@@ -182,52 +183,25 @@ export default function AdminDashboard() {
   type SectionType = "permits" | "indicators" | "extemporaneous" | "history" | "users" | "exit"
 
   const router = useRouter()
-  const { refreshToken } = useTokenRefresh()
   const [activeSection, setActiveSection] = useState<SectionType>("permits")
-  const [userRole, setUserRole] = useState<string>("")
-  const [userName, setUserName] = useState<string>("")
-  const [currentTime, setCurrentTime] = useState<string>("")
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [currentTime, setCurrentTime] = useState("")
   const [notifications] = useState(3)
+  const { 
+    userContext, 
+    isLoading, 
+    isAuthenticated, 
+    hasCapability, 
+    displayName, 
+    logout 
+  } = useRBACContext()
 
   useEffect(() => {
-    const role = localStorage.getItem("userRole") || "admin"
-    let name = localStorage.getItem("userName") || "Administrador"
-
-    // Si no hay nombre guardado, intentar obtenerlo del backend
-    if (name === "Administrador") {
-      const token = localStorage.getItem("accessToken")
-      if (token) {
-        fetch(`${process.env.NEXT_PUBLIC_API_URL || "https://solicitud-permisos.sao6.com.co/api"}/auth/user`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        })
-          .then(response => {
-            if (response.ok) {
-              return response.json()
-            }
-            throw new Error("No se pudo obtener información del usuario")
-          })
-          .then(userData => {
-            const userName = userData.name || "Administrador"
-            localStorage.setItem("userName", userName)
-            // Guardar todos los datos del usuario para que otros componentes puedan acceder
-            localStorage.setItem('userData', JSON.stringify(userData))
-            console.log('DEBUG dashboard: userData guardado en localStorage:', userData)
-            setUserName(userName)
-          })
-          .catch(error => {
-            console.warn("Error al obtener nombre del usuario:", error)
-            setUserName("Administrador")
-          })
-      }
-    } else {
-      setUserName(name)
+    // Check authentication through RBAC context
+    if (!isAuthenticated && !isLoading) {
+      router.push("/")
+      return
     }
-
-    setUserRole(role)
 
     // Update time every minute
     const updateTime = () => {
@@ -332,8 +306,7 @@ export default function AdminDashboard() {
 
   const handleSectionChange = (section: SectionType) => {
     if (section === "exit") {
-      localStorage.clear()
-      router.push("/")
+      handleLogout()
     } else {
       setActiveSection(section)
       setSidebarOpen(false)
@@ -341,8 +314,14 @@ export default function AdminDashboard() {
   }
 
   const handleLogout = () => {
+    // Clear all localStorage data
     localStorage.clear()
-    router.push("/")
+    
+    // Call RBAC logout
+    logout()
+    
+    // Force page reload to clear all cached data and state
+    window.location.href = '/'
   }
 
   const getSectionTitle = () => {
@@ -350,9 +329,21 @@ export default function AdminDashboard() {
     return section?.title || "Dashboard"
   }
 
-  const filteredNavigation = userRole === "testers"
-    ? navigationItems.filter((item) => ["extemporaneous"].includes(item.id))
-    : navigationItems
+  // Filter navigation based on RBAC permissions
+  const filteredNavigation = navigationItems.filter(item => {
+    switch (item.id) {
+      case "permits":
+        return hasCapability("canViewAllRequests") || hasCapability("canViewOwnRequests")
+      case "extemporaneous":
+        return hasCapability("canViewAllRequests") || hasCapability("canViewOwnRequests")
+      case "history":
+        return hasCapability("canViewAllRequests")
+      case "users":
+        return hasCapability("canViewAllUsers")
+      default:
+        return false
+    }
+  })
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-gray-50 via-green-50/30 to-emerald-50/30 relative">
@@ -433,13 +424,13 @@ export default function AdminDashboard() {
               <div className="relative">
                 <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg">
                   <span className="text-white font-bold text-lg drop-shadow-sm">
-                    {userName.charAt(0).toUpperCase()}
+                    {displayName ? displayName.charAt(0).toUpperCase() : 'U'}
                   </span>
                 </div>
                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white"></div>
               </div>
               <div className="flex-1">
-                <h3 className="font-bold text-green-800 text-lg">{userName}</h3>
+                <h3 className="font-bold text-green-800 text-lg">{displayName || 'Usuario'}</h3>
                 <p className="text-green-600 text-sm flex items-center">
                   <Activity className="h-3 w-3 mr-1" />
                   En línea
@@ -450,7 +441,7 @@ export default function AdminDashboard() {
                       <div key={i} className={`w-1 h-1 rounded-full ${i < 4 ? 'bg-green-400' : 'bg-gray-300'}`}></div>
                     ))}
                   </div>
-                  <span className="text-xs text-green-600">Admin</span>
+                  <span className="text-xs text-green-600">{userContext?.role || 'Usuario'}</span>
                 </div>
               </div>
               <div className="relative">

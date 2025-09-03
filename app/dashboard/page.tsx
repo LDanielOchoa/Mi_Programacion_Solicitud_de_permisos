@@ -295,10 +295,17 @@ export default function Dashboard() {
 
   // Logout function
   const handleLogout = () => {
-    localStorage.removeItem('accessToken')
-    localStorage.removeItem('userData')
-    localStorage.removeItem('dashboardNotifications')
-    router.push('/')
+    // Clear all localStorage data
+    localStorage.clear()
+    
+    // Clear component state
+    setNotifications([])
+    setStatsData({ total: 0, approved: 0, pending: 0, rejected: 0 })
+    setUserPhotoUrl(null)
+    setHasNewNotification(false)
+    
+    // Force page reload to clear all cached data and state
+    window.location.href = '/'
   }
 
   // Actualizar tiempo

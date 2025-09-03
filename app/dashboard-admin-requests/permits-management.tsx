@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo, memo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { debounce } from "lodash"
+import { useRBACContext, PermissionGuard } from "@/components/RBACProvider"
 import {
   RefreshCw,
   Settings,
@@ -389,40 +390,23 @@ export default function PermitsManagement() {
   const [isBulkActionProcessing, setIsBulkActionProcessing] = useState(false)
   const [weekFilter, setWeekFilter] = useState<string | null>(null)
   
-  // Get user data from localStorage to check userType
-  const [currentUserType, setCurrentUserType] = useState<string | null>(() => {
-    // Only access localStorage on client side to avoid SSR errors
-    if (typeof window !== 'undefined') {
-      try {
-        const userData = localStorage.getItem('userData')
-        if (userData) {
-          const parsedUserData = JSON.parse(userData)
-          return parsedUserData.userType || null
-        }
-      } catch (error) {
-        console.error('Error parsing user data:', error)
-      }
-    }
-    return null
-  })
+  // Use RBAC context instead of localStorage
+  const { 
+    userContext, 
+    hasCapability, 
+    hasPermission, 
+    isAuthenticated
+  } = useRBACContext()
+  
+  const currentUserType = userContext?.userType
   
   const [userTypeLoaded, setUserTypeLoaded] = useState(false)
 
   useEffect(() => {
-    const userData = localStorage.getItem('userData')
-    console.log('Raw userData from localStorage:', userData)
-    if (userData) {
-      try {
-        const parsedUserData = JSON.parse(userData)
-        console.log('Parsed userData:', parsedUserData)
-        console.log('UserType found:', parsedUserData.userType)
-        setCurrentUserType(parsedUserData.userType || null)
-      } catch (error) {
-        console.error('Error parsing user data:', error)
-      }
+    if (currentUserType) {
+      setUserTypeLoaded(true)
     }
-    setUserTypeLoaded(true)
-  }, [])
+  }, [currentUserType])
 
   const requestsPerPage = 12
   const zones = [

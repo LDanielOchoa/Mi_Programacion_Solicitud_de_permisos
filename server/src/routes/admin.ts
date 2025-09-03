@@ -8,7 +8,15 @@ import {
   NotificationStatusUpdateInput,
   RequestUpdateInput
 } from '../schemas/index.js';
-import { getCurrentUser, requireAdmin } from '../middleware/auth.js';
+import { getCurrentUser } from '../middleware/auth.js';
+import { 
+  enrichUserWithPermissions, 
+  requirePermission, 
+  requireAdmin,
+  requireAnyPermission,
+  UserContext
+} from '../middleware/permissions.js';
+import { userHasPermission } from '../config/permissions.js';
 import { getEmployeeFromSE, getEmployeeFromOperations, getMaintenanceEmployees } from '../config/sqlserver.js';
 import { getConnection, executeQuery } from '../config/database.js';
 import logger from '../config/logger.js';
@@ -28,8 +36,11 @@ type AppEnv = {
 
 const admin = new Hono<AppEnv>();
 
+// Apply permission enrichment to all admin routes
+admin.use('*', getCurrentUser, enrichUserWithPermissions);
+
 // GET // Endpoint de diagnóstico para analizar datos de mantenimiento
-admin.get('/maintenance-diagnostic', async (c) => {
+admin.get('/maintenance-diagnostic', requirePermission('maintenance:diagnostic'), async (c) => {
   try {
     const { getSqlServerConnection } = await import('../config/sqlserver.js');
     const pool = await getSqlServerConnection();
@@ -100,7 +111,7 @@ admin.get('/maintenance-diagnostic', async (c) => {
 });
 
 // GET // Endpoint para obtener empleados de mantenimiento
-admin.get('/maintenance-employees', async (c) => {
+admin.get('/maintenance-employees', requirePermission('maintenance:read'), async (c) => {
   try {
     logger.info('Obteniendo empleados de mantenimiento desde SQL Server');
     const employees = await getMaintenanceEmployees();
@@ -117,7 +128,7 @@ admin.get('/maintenance-employees', async (c) => {
 });
 
 // POST /search-employee-by-cedula - Buscar empleado por cédula en SQL Server (Mantenimiento)
-admin.post('/search-employee-by-cedula', getCurrentUser, async (c) => {
+admin.post('/search-employee-by-cedula', requirePermission('maintenance:search'), async (c) => {
   try {
     const body = await c.req.json();
     const { cedula } = body;
@@ -160,7 +171,7 @@ admin.post('/search-employee-by-cedula', getCurrentUser, async (c) => {
 });
 
 // POST /search-employee-operations - Buscar empleado por cédula en centro de costo "Gestion de Operaciones"
-admin.post('/search-employee-operations', getCurrentUser, async (c) => {
+admin.post('/search-employee-operations', requirePermission('operations:search'), async (c) => {
   try {
     const body = await c.req.json();
     const { cedula } = body;
@@ -203,14 +214,14 @@ admin.post('/search-employee-operations', getCurrentUser, async (c) => {
 });
 
 // GET /requests - Obtener todas las solicitudes con paginación (requiere autenticación de admin)
-admin.get('/requests', getCurrentUser, requireAdmin, async (c) => {
+admin.get('/requests', requireAnyPermission(['requests:read', 'requests:read_own']), async (c) => {
   try {
     const page = parseInt(c.req.query('page') || '1', 10);
     let limit = parseInt(c.req.query('limit') || '20', 10);
     const offset = (page - 1) * limit;
     
-    // Obtener el usuario actual del contexto
-    const currentUser = c.get('currentUser') as User;
+    // Obtener el usuario actual del contexto con permisos enriquecidos
+    const currentUser = c.get('currentUser') as UserContext;
     
     // Obtener filtros de fecha desde los query parameters
     const dateFrom = c.req.query('dateFrom');
@@ -219,8 +230,21 @@ admin.get('/requests', getCurrentUser, requireAdmin, async (c) => {
     const type = c.req.query('type');
     const department = c.req.query('department');
     const priority = c.req.query('priority');
-    // Usar el userType del usuario autenticado en lugar del query parameter
-    const userType = currentUser?.userType || c.req.query('userType');
+    
+    // Aplicar filtrado basado en permisos
+    const canReadAllRequests = userHasPermission(currentUser, 'requests:read');
+    const canFilterAllTypes = userHasPermission(currentUser, 'requests:filter_all');
+    const shouldFilterByUserCode = !canReadAllRequests && userHasPermission(currentUser, 'requests:read_own');
+    
+    // Determinar userType basado en permisos
+    let userType;
+    if (canReadAllRequests && canFilterAllTypes) {
+      userType = c.req.query('userType'); // Admin puede ver todos los tipos
+    } else if (canReadAllRequests && !canFilterAllTypes) {
+      userType = currentUser?.userType; // Puede ver todas las requests pero solo de su tipo
+    } else {
+      userType = currentUser?.userType; // Solo puede ver sus propias requests
+    }
 
     logger.info({ page, limit, offset, dateFrom, dateTo, status, type, department, priority, userType }, 'Obteniendo solicitudes con paginación y filtros');
 
@@ -287,7 +311,11 @@ admin.get('/requests', getCurrentUser, requireAdmin, async (c) => {
       wherePerms.push('p.tipo_novedad = ?');
       paramsPerms.push(type);
     }
-    if (userType && userType === 'se_maintenance') {
+    if (!canReadAllRequests && shouldFilterByUserCode) {
+      wherePerms.push('p.code = ?');
+      paramsPerms.push(currentUser.code);
+      console.log('DEBUG BACKEND: Aplicando filtro por código de usuario:', currentUser.code);
+    } else if (userType && userType === 'se_maintenance') {
       console.log('DEBUG BACKEND: Aplicando filtro userType=se_maintenance');
       wherePerms.push('p.userType = ?');
       paramsPerms.push('se_maintenance');
@@ -335,15 +363,21 @@ admin.get('/requests', getCurrentUser, requireAdmin, async (c) => {
       wherePost.push('p.tipo_novedad = ?');
       paramsPost.push(type);
     }
+    // CRITICAL FIX: Apply user code filter to permit_post table too
+    if (!canReadAllRequests && shouldFilterByUserCode) {
+      wherePost.push('p.code = ?');
+      paramsPost.push(currentUser.code);
+      console.log('DEBUG BACKEND: Aplicando filtro por código de usuario en permit_post:', currentUser.code);
+    }
     // Note: permit_post doesn't have userType column, so no filtering needed for se_maintenance
     // Only permit_perms has userType column for maintenance employees
 
     // --- FIN NUEVO ---
 
     // Union de ambas tablas para poder ordenar y paginar sobre el conjunto completo
-    // Si userType es se_maintenance, solo mostrar permit_perms
+    // Si el usuario solo puede ver sus propias solicitudes O es se_maintenance, ajustar consulta
     let unionQuery;
-    if (userType === 'se_maintenance') {
+    if (shouldFilterByUserCode || userType === 'se_maintenance') {
       unionQuery = `
         SELECT p.id, p.code, p.name, p.telefono as phone, p.fecha as dates, p.hora as time,
                p.tipo_novedad as type, p.tipo_novedad as noveltyType, p.description,
@@ -398,7 +432,7 @@ admin.get('/requests', getCurrentUser, requireAdmin, async (c) => {
 
     // Construir consulta de conteo total con los mismos filtros
     let totalCountQuery;
-    if (userType === 'se_maintenance') {
+    if (shouldFilterByUserCode || userType === 'se_maintenance') {
       totalCountQuery = `
         SELECT COUNT(*) as total
         FROM permit_perms p
@@ -424,7 +458,7 @@ admin.get('/requests', getCurrentUser, requireAdmin, async (c) => {
     }
     // Consulta para obtener estadísticas por estado con filtros aplicados
     let statsQuery;
-    if (userType === 'se_maintenance') {
+    if (shouldFilterByUserCode || userType === 'se_maintenance') {
       statsQuery = `
         SELECT 
           solicitud as status,
@@ -457,7 +491,7 @@ admin.get('/requests', getCurrentUser, requireAdmin, async (c) => {
 
     // Agregar parámetros de paginación al final
     let finalQueryParams, totalCountParams, statsParams;
-    if (userType === 'se_maintenance') {
+    if (shouldFilterByUserCode || userType === 'se_maintenance') {
       finalQueryParams = limit === -1 ? [...paramsPerms] : [...paramsPerms, limit, offset];
       totalCountParams = [...paramsPerms];
       statsParams = [...paramsPerms];
@@ -577,7 +611,7 @@ admin.get('/requests', getCurrentUser, requireAdmin, async (c) => {
 });
 
 // GET /filter-options - Obtener opciones para filtros
-admin.get('/filter-options', getCurrentUser, requireAdmin, async (c) => {
+admin.get('/filter-options', requirePermission('requests:read'), async (c) => {
   try {
     logger.info('Obteniendo opciones de filtros');
 
@@ -625,7 +659,7 @@ admin.get('/filter-options', getCurrentUser, requireAdmin, async (c) => {
 });
 
 // GET /requests/{code} - Obtener solicitudes por código de usuario
-admin.get('/requests/:code', async (c) => {
+admin.get('/requests/:code', requireAnyPermission(['requests:read', 'requests:read_own']), async (c) => {
   const code = c.req.param('code');
   if (!code) throw new HTTPException(400, { message: 'Código de usuario requerido' });
 
@@ -691,7 +725,7 @@ admin.get('/requests/:code', async (c) => {
 });
 
 // PUT /requests/{id} - Actualizar solicitud
-admin.put('/requests/:id', async (c) => {
+admin.put('/requests/:id', requirePermission('requests:approve'), async (c) => {
   const id = parseInt(c.req.param('id') || '0', 10);
   const body = await c.req.json();
   const request: RequestUpdateInput = validateWithZod(RequestUpdateSchema, body);
@@ -715,7 +749,7 @@ admin.put('/requests/:id', async (c) => {
 });
 
 // PUT /requests/{id}/notifications - Actualizar estado de notificación
-admin.put('/requests/:id/notifications', async (c) => {
+admin.put('/requests/:id/notifications', requirePermission('notifications:write'), async (c) => {
   const id = parseInt(c.req.param('id') || '0', 10);
   const body = await c.req.json();
   const payload: NotificationStatusUpdateInput = validateWithZod(NotificationStatusUpdateSchema, body);
@@ -739,7 +773,7 @@ admin.put('/requests/:id/notifications', async (c) => {
 });
 
 // PUT /update-approval/{id} - Actualizar aprobación
-admin.put('/update-approval/:id', async (c) => {
+admin.put('/update-approval/:id', requirePermission('requests:approve'), async (c) => {
   const id = parseInt(c.req.param('id') || '0', 10);
   const body = await c.req.json();
   const approval: ApprovalUpdateInput = validateWithZod(ApprovalUpdateSchema, body);
@@ -757,7 +791,7 @@ admin.put('/update-approval/:id', async (c) => {
 });
 
 // DELETE /requests/{id} - Eliminar solicitud
-admin.delete('/requests/:id', async (c) => {
+admin.delete('/requests/:id', requirePermission('requests:delete'), async (c) => {
   const id = parseInt(c.req.param('id') || '0', 10);
   if (!id) throw new HTTPException(400, { message: 'ID de solicitud requerido' });
 
@@ -773,7 +807,7 @@ admin.delete('/requests/:id', async (c) => {
 });
 
 // GET /solicitudes - Obtener solicitudes del usuario actual
-admin.get('/solicitudes', getCurrentUser, async (c) => {
+admin.get('/solicitudes', requireAnyPermission(['requests:read', 'requests:read_own']), async (c) => {
   const currentUser = c.get('currentUser') as User;
   
   const permitRequests = await executeQuery<any[]>(
