@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Prueba de URLs de Archivos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        .url-test {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 4px;
+        }
+
+        .success {
+            border-left: 4px solid #4CAF50;
+        }
+
+        .error {
+            border-left: 4px solid #f44336;
+        }
+
+        img {
+            max-width: 200px;
+            max-height: 200px;
+            border: 1px solid #ddd;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Debug - Prueba de URLs de Archivos</h1>
+
+    <div class="test-section">
+        <h2>Prueba de URLs del Backend</h2>
+        <div id="backend-tests"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Prueba de Archivos Existentes</h2>
+        <div id="file-tests"></div>
+    </div>
+
+    <script>
+        // URLs de prueba basadas en la nueva estructura
+        const testUrls = [
+            'https://solicitud-permisos.sao6.com.co/api/files/2025/01/9999/solicitud_3539_cita/9999_cita_1753806620240_1.png',
+            'https://solicitud-permisos.sao6.com.co/api/files/1753803999077_gl5skl2t6rb.png',
+            'https://solicitud-permisos.sao6.com.co/api/uploads/1753803999077_gl5skl2t6rb.png'
+        ];
+
+        function testUrl(url, containerId) {
+            const container = document.getElementById(containerId);
+            const testDiv = document.createElement('div');
+            testDiv.className = 'url-test';
+
+            const urlSpan = document.createElement('div');
+            urlSpan.innerHTML = `<strong>URL:</strong> ${url}`;
+            testDiv.appendChild(urlSpan);
+
+            const img = document.createElement('img');
+            img.src = url;
+            img.onload = function () {
+                testDiv.classList.add('success');
+                const status = document.createElement('div');
+                status.innerHTML = '<strong>Estado:</strong> ✅ Cargada exitosamente';
+                testDiv.appendChild(status);
+            };
+            img.onerror = function () {
+                testDiv.classList.add('error');
+                const status = document.createElement('div');
+                status.innerHTML = '<strong>Estado:</strong> ❌ Error al cargar';
+                testDiv.appendChild(status);
+            };
+
+            testDiv.appendChild(img);
+            container.appendChild(testDiv);
+        }
+
+        // Probar URLs del backend
+        testUrls.forEach(url => testUrl(url, 'backend-tests'));
+
+        // Probar endpoint de archivos
+        fetch('https://solicitud-permisos.sao6.com.co/api/files/')
+            .then(response => {
+                const testDiv = document.createElement('div');
+                testDiv.className = 'url-test';
+                testDiv.innerHTML = `<strong>Endpoint /files/:</strong> ${response.status} - ${response.statusText}`;
+                testDiv.classList.add(response.ok ? 'success' : 'error');
+                document.getElementById('backend-tests').appendChild(testDiv);
+            })
+            .catch(error => {
+                const testDiv = document.createElement('div');
+                testDiv.className = 'url-test error';
+                testDiv.innerHTML = `<strong>Endpoint /files/:</strong> Error - ${error.message}`;
+                document.getElementById('backend-tests').appendChild(testDiv);
+            });
+    </script>
+</body>
+
+</html>

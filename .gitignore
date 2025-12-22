@@ -1,0 +1,185 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# ================================
+# FRONTEND DEPENDENCIES (Next.js)
+# ================================
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+/package-lock.json
+/yarn.lock
+/pnpm-lock.yaml
+
+# Testing
+/coverage
+*.lcov
+
+# Next.js
+/.next/
+/out/
+/.swc/
+
+# Production builds
+/build
+/dist
+
+# ================================
+# BACKEND DEPENDENCIES (Node.js)
+# ================================
+# Backend node_modules
+/server/node_modules
+/server/package-lock.json
+/server/yarn.lock
+/server/pnpm-lock.yaml
+
+# Backend build/dist
+/server/build
+/server/dist
+/server/lib
+
+# ================================
+# ENVIRONMENT & CONFIG FILES
+# ================================
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# ================================
+# LOGS & DEBUG
+# ================================
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# ================================
+# OPERATING SYSTEM
+# ================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+
+# ================================
+# DEVELOPMENT TOOLS
+# ================================
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Python (if using any Python tools)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# ================================
+# DEPLOYMENT & CLOUD
+# ================================
+# Vercel
+.vercel
+
+# Netlify
+.netlify
+
+# AWS
+.aws/
+
+# ================================
+# MISC
+# ================================
+# Certificates
+*.pem
+
+# AI tools
+.ai
+
+# Turborepo
+.turbo
+
+# Temporary files
+*.tmp
+*.temp
+
+# Cache directories
+.cache/
+.parcel-cache/
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
