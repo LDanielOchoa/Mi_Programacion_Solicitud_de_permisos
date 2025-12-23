@@ -39,7 +39,7 @@ const verifyFlowToken = (token: string, secret: string) => {
 };
 
 const JWT_SECRET = process.env.NEXT_PUBLIC_JWT_SECRET || "your_jwt_secret_key_change_in_production"
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://solicitud-permisos.sao6.com.co/api"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "solicitud-permisos.sao6.com.co/api"
 
 export function useLogin() {
     const [code, setCode] = useState("")

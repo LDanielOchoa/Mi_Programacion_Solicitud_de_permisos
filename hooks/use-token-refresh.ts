@@ -16,7 +16,7 @@ export const useTokenRefresh = () => {
       }
 
       // Intentar renovar el token haciendo una petición al endpoint de refresh
-      const response = await fetch("https://solicitud-permisos.sao6.com.co/api/auth/refresh", {
+      const response = await fetch("solicitud-permisos.sao6.com.co/api/auth/refresh", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

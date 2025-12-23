@@ -36,7 +36,7 @@ export default function useUserData() {
         return null;
       }
 
-      const response = await fetch('https://solicitud-permisos.sao6.com.co/api/auth/user', {
+      const response = await fetch('solicitud-permisos.sao6.com.co/api/auth/user', {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',

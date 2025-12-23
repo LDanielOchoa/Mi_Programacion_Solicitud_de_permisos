@@ -331,7 +331,7 @@ export default function Dashboard() {
 
     try {
       // Usar el endpoint proxy del backend para evitar problemas de CORS
-      const imageUrl = `https://solicitud-permisos.sao6.com.co/api/images/empleado/${cedula}`
+      const imageUrl = `solicitud-permisos.sao6.com.co/api/images/empleado/${cedula}`
       console.log(`Intentando cargar imagen via proxy: ${imageUrl}`)
 
       // Verificar si la imagen existe usando fetch al proxy
@@ -449,7 +449,7 @@ export default function Dashboard() {
         return
       }
 
-      const response = await fetch('https://solicitud-permisos.sao6.com.co/api/admin/solicitudes', {
+      const response = await fetch('solicitud-permisos.sao6.com.co/api/admin/solicitudes', {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",

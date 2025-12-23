@@ -92,7 +92,7 @@ export const useRBAC = () => {
       }
 
       console.log('RBAC DEBUG: Making request to /user-context/me with token');
-      const response = await fetch('https://solicitud-permisos.sao6.com.co/api/user-context/me', {
+      const response = await fetch('solicitud-permisos.sao6.com.co/api/user-context/me', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

@@ -34,7 +34,7 @@ export default function FilePreviewThumbnail({ fileName, fileUrl, onClick }: Fil
   }
 
   const cleanFileUrl = extractFileName(fileUrl)
-  const fullFileUrl = `${'https://solicitud-permisos.sao6.com.co/api'}/uploads/${encodeURIComponent(cleanFileUrl)}`
+  const fullFileUrl = `${'solicitud-permisos.sao6.com.co/api'}/uploads/${encodeURIComponent(cleanFileUrl)}`
 
   if (isImage && !isImageError) {
     return (

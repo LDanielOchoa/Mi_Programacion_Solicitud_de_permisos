@@ -49,7 +49,7 @@ export default function NotificationsPanel({ onClose, onMarkAllAsRead }: Notific
         window.location.href = '/'
         return
       }
-      const response = await fetch(`https://solicitud-permisos.sao6.com.co/api/requests/${code}`)
+      const response = await fetch(`solicitud-permisos.sao6.com.co/api/requests/${code}`)
       if (!response.ok) {
         throw new Error('Failed to fetch notifications')
       }
@@ -110,7 +110,7 @@ export default function NotificationsPanel({ onClose, onMarkAllAsRead }: Notific
   const updateNotificationStatus = useCallback(async (notificationId: number, currentStatus: number) => {
     try {
       const newStatus = currentStatus === 0 ? 1 : 2
-      const response = await fetch(`https://solicitud-permisos.sao6.com.co/api/requests/${notificationId}/notifications`, {
+      const response = await fetch(`solicitud-permisos.sao6.com.co/api/requests/${notificationId}/notifications`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notification_status: newStatus }),

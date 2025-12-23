@@ -66,7 +66,7 @@ export async function fetchUserHistory(userCode: string): Promise<{
         const token = localStorage.getItem("accessToken")
 
         const response = await fetch(
-            `https://solicitud-permisos.sao6.com.co/api/admin/requests/user/${userCode}/history`,
+            `solicitud-permisos.sao6.com.co/api/admin/requests/user/${userCode}/history`,
             {
                 headers: {
                     Authorization: `Bearer ${token}`,

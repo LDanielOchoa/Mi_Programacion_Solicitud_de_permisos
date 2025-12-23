@@ -60,9 +60,9 @@
     <script>
         // URLs de prueba basadas en la nueva estructura
         const testUrls = [
-            'https://solicitud-permisos.sao6.com.co/api/files/2025/01/9999/solicitud_3539_cita/9999_cita_1753806620240_1.png',
-            'https://solicitud-permisos.sao6.com.co/api/files/1753803999077_gl5skl2t6rb.png',
-            'https://solicitud-permisos.sao6.com.co/api/uploads/1753803999077_gl5skl2t6rb.png'
+            'solicitud-permisos.sao6.com.co/api                                                                                                                                                                                                                                                                                                                                                                        /api/files/2025/01/9999/solicitud_3539_cita/9999_cita_1753806620240_1.png',
+            'solicitud-permisos.sao6.com.co/api                                                                                                                                                                                                                                                                                                                                                                        /api/files/1753803999077_gl5skl2t6rb.png',
+            'solicitud-permisos.sao6.com.co/api                                                                                                                                                                                                                                                                                                                                                                        /api/uploads/1753803999077_gl5skl2t6rb.png'
         ];
 
         function testUrl(url, containerId) {
@@ -97,7 +97,7 @@
         testUrls.forEach(url => testUrl(url, 'backend-tests'));
 
         // Probar endpoint de archivos
-        fetch('https://solicitud-permisos.sao6.com.co/api/files/')
+        fetch('solicitud-permisos.sao6.com.co/api                                                                                                                                                                                                                                                                                                                                                                        /api/files/')
             .then(response => {
                 const testDiv = document.createElement('div');
                 testDiv.className = 'url-test';

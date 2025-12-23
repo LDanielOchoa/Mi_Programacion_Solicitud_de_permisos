@@ -20,7 +20,7 @@ const nextConfig = {
     return [
       {
         source: '/operator/:path*',
-        destination: 'https://solicitud-permisos.sao6.com.co/api/operator/:path*',
+        destination: 'solicitud-permisos.sao6.com.co/api                                                                                                                                                                                                                                                                                                                                                                        /api/operator/:path*',
       },
     ];
   },

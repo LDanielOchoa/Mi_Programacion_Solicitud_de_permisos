@@ -60,7 +60,7 @@ function cleanFileUrl(fileUrl: string): string {
  * @example
  * // Para archivo con ruta relativa
  * buildFileUrl('2024/01/12345678/solicitud_123_cita/archivo.pdf')
- * // Retorna: 'https://solicitud-permisos.sao6.com.co/api/files/2024/01/12345678/solicitud_123_cita/archivo.pdf'
+ * // Retorna: 'solicitud-permisos.sao6.com.co/api/files/2024/01/12345678/solicitud_123_cita/archivo.pdf'
  * 
  * // Para archivo con URL absoluta (se mantiene sin cambios)
  * buildFileUrl('http://example.com/archivo.pdf')
@@ -81,7 +81,7 @@ export function buildFileUrl(fileUrl: string): string {
   }
 
   // Construir URL usando la nueva estructura profesional
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://solicitud-permisos.sao6.com.co/api'
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'solicitud-permisos.sao6.com.co/api'
 
   // Asegurar que no hay barras duplicadas
   const finalUrl = cleanedUrl.startsWith('/') ? cleanedUrl.slice(1) : cleanedUrl

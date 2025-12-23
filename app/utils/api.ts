@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://solicitud-permisos.sao6.com.co/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'solicitud-permisos.sao6.com.co/api';
 
 export async function fetchRequests() {
   const response = await fetch(`${API_URL}/requests`);

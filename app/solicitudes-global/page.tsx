@@ -104,7 +104,7 @@ export default function Solicitudes() {
 
       // Intentar obtener datos del usuario
       try {
-        const userResponse = await fetch("https://solicitud-permisos.sao6.com.co/api/auth/user", {
+        const userResponse = await fetch("solicitud-permisos.sao6.com.co/api/auth/user", {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -121,7 +121,7 @@ export default function Solicitudes() {
       }
 
       // Obtener solicitudes
-      const response = await fetch("https://solicitud-permisos.sao6.com.co/api/admin/solicitudes", {
+      const response = await fetch("solicitud-permisos.sao6.com.co/api/admin/solicitudes", {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",

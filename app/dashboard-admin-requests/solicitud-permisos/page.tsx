@@ -94,7 +94,7 @@ const UserInfoCard: React.FC<UserInfoCardProps> = ({ code, name, phone, onPhoneE
         // Para se_operaciones: Obtener usuarios de MySQL directamente (RÁPIDO)
         console.log('🔍 Fetching MySQL users for se_operaciones...')
 
-        const mysqlResponse = await fetch('https://solicitud-permisos.sao6.com.co/api/users/user/lists?limit=1000', {
+        const mysqlResponse = await fetch('solicitud-permisos.sao6.com.co/api/users/user/lists?limit=1000', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -169,7 +169,7 @@ const UserInfoCard: React.FC<UserInfoCardProps> = ({ code, name, phone, onPhoneE
 
       } else {
         // Para se_maintenance: usar el endpoint original
-        const response = await fetch('https://solicitud-permisos.sao6.com.co/api/admin/maintenance-employees', {
+        const response = await fetch('solicitud-permisos.sao6.com.co/api/admin/maintenance-employees', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -516,7 +516,7 @@ const checkExistingPermits = async (dates: string[], noveltyType: string, userCo
       throw new Error("No se encontró el token de acceso")
     }
 
-    const response = await fetch("https://solicitud-permisos.sao6.com.co/api/permits/check-existing-permits", {
+    const response = await fetch("solicitud-permisos.sao6.com.co/api/permits/check-existing-permits", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -1294,7 +1294,7 @@ export default function PermitRequestForm({ isExtemporaneous = false }: PermitRe
   // Función para verificar conectividad
   const checkConnectivity = async (): Promise<boolean> => {
     try {
-      const response = await fetch("https://solicitud-permisos.sao6.com.co/api/health", {
+      const response = await fetch("solicitud-permisos.sao6.com.co/api/health", {
         method: "HEAD",
         mode: "no-cors",
       })
@@ -1362,7 +1362,7 @@ export default function PermitRequestForm({ isExtemporaneous = false }: PermitRe
   }, [])
 
   const submitFunction = useCallback(async (data: any, signal: AbortSignal) => {
-    const response = await fetch("https://solicitud-permisos.sao6.com.co/api/permits/permit-request", {
+    const response = await fetch("solicitud-permisos.sao6.com.co/api/permits/permit-request", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${data.token}`,
@@ -1410,7 +1410,7 @@ export default function PermitRequestForm({ isExtemporaneous = false }: PermitRe
       const allDates = weekDates.map((date) => format(date.date, "yyyy-MM-dd"))
 
       // Verificar permisos existentes para el empleado seleccionado o el usuario actual
-      const response = await fetch("https://solicitud-permisos.sao6.com.co/api/permits/check-existing-permits", {
+      const response = await fetch("solicitud-permisos.sao6.com.co/api/permits/check-existing-permits", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

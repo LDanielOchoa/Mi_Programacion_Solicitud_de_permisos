@@ -16,7 +16,7 @@ export function FilePreview({ fileName, fileUrl, onClick }: FilePreviewProps) {
   const isImage = ['jpg', 'jpeg', 'png', 'gif'].includes(fileType || '')
   const isPDF = fileType === 'pdf'
 
-  const fullFileUrl = `https://solicitud-permisos.sao6.com.co/api/files/${encodeURIComponent(fileUrl)}`
+  const fullFileUrl = `solicitud-permisos.sao6.com.co/api/files/${encodeURIComponent(fileUrl)}`
 
   if (isImage && !isImageError) {
     return (

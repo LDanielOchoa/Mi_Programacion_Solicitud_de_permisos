@@ -59,16 +59,48 @@ export function getUpcomingHolidays(dates: Date[]): Date[] {
 }
 
 /**
- * Obtiene las fechas del calendario con festivos
+ * Obtiene las fechas del calendario con festivos siguiendo la regla de negocio:
+ * - Antes del miércoles 12:00 PM (Colombia): Muestra la siguiente semana.
+ * - Después del miércoles 12:00 PM (Colombia): Muestra la subsiguiente semana.
  */
 export function getCalendarDatesWithHolidays(): {
     regularDates: DateInfo[]
     upcomingHolidays: Date[]
 } {
     const dates: DateInfo[] = []
-    const monday = getCurrentWeekMonday()
-    let currentDate = new Date(monday)
 
+    // 1. Obtener fecha y hora actual en Colombia (UTC-5)
+    const now = new Date();
+    const colombiaString = now.toLocaleString("en-US", { timeZone: "America/Bogota" });
+    const colombiaNow = new Date(colombiaString);
+
+    const bogotaDay = colombiaNow.getDay(); // 0 (Dom) a 6 (Sáb)
+    const bogotaHour = colombiaNow.getHours();
+
+    // 2. Obtener el lunes de la semana actual (de la fecha actual de Colombia)
+    const currentMonday = new Date(colombiaNow);
+    const diffToMonday = bogotaDay === 0 ? -6 : 1 - bogotaDay;
+    currentMonday.setDate(colombiaNow.getDate() + diffToMonday);
+    currentMonday.setHours(0, 0, 0, 0);
+
+    // 3. Lógica de transición: Miércoles 12:00 PM
+    // bogotaDay: Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6, Sun=0
+    // Normalizamos domingo a 7 para facilitar la comparación
+    const dayNormalized = bogotaDay === 0 ? 7 : bogotaDay;
+
+    let weeksToAdd = 7; // Por defecto empezamos en la siguiente semana
+
+    // Si es miércoles después de las 12, o jueves en adelante...
+    if (dayNormalized > 3 || (dayNormalized === 3 && bogotaHour >= 12)) {
+        weeksToAdd = 14; // Saltar a la semana subsiguiente
+    }
+
+    let startDate = new Date(currentMonday);
+    startDate.setDate(currentMonday.getDate() + weeksToAdd);
+
+    let currentDate = new Date(startDate);
+
+    // 4. Generar los 7 días (Lunes a Domingo)
     for (let i = 0; i < 7; i++) {
         const formattedDate = format(currentDate, "yyyy-MM-dd")
         const shortDate = format(currentDate, "dd/MM")

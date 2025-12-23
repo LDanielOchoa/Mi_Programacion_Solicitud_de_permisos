@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 export async function GET() {
   try {
     // Usar el backend Node.js con discriminación de tipos de usuario
-    const backendUrl = 'https://solicitud-permisos.sao6.com.co/api/excel/excel-permisos'
+    const backendUrl = 'solicitud-permisos.sao6.com.co/api/excel/excel-permisos'
     const response = await fetch(backendUrl)
 
     if (!response.ok) {

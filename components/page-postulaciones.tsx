@@ -59,7 +59,7 @@ export default function EquipmentRequestForm() {
           return
         }
 
-        const response = await fetch('https://solicitud-permisos.sao6.com.co/api/auth/user', {
+        const response = await fetch('solicitud-permisos.sao6.com.co/api/auth/user', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -88,7 +88,7 @@ export default function EquipmentRequestForm() {
 
     const fetchUsersList = async () => {
       try {
-        const response = await fetch('https://solicitud-permisos.sao6.com.co/api/users/list')
+        const response = await fetch('solicitud-permisos.sao6.com.co/api/users/list')
         if (!response.ok) {
           throw new Error('Error al obtener la lista de usuarios')
         }
@@ -150,7 +150,7 @@ export default function EquipmentRequestForm() {
         throw new Error('No se encontró el token de acceso')
       }
 
-      const response = await fetch('https://solicitud-permisos.sao6.com.co/api/equipment-request', {
+      const response = await fetch('solicitud-permisos.sao6.com.co/api/equipment-request', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

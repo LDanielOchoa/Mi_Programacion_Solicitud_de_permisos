@@ -52,7 +52,7 @@ const DEBOUNCE_DELAY = 300;
 const requestCache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_DURATION = 2 * 60 * 1000; // 2 minutos
 
-const getApiUrl = () => 'https://solicitud-permisos.sao6.com.co/api';
+const getApiUrl = () => 'solicitud-permisos.sao6.com.co/api';
 const getAuthToken = () => localStorage.getItem('accessToken');
 
 const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
