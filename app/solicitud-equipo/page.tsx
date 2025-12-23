@@ -79,7 +79,7 @@ export default function EquipmentRequestForm() {
   // Hook de envío con protección de conexión
   const { submit, state: submitState } = useConnectionAwareSubmit(
     async (data: any, signal: AbortSignal) => {
-      const response = await fetch("solicitud-permisos.sao6.com.co/api/equipment/equipment-request", {
+      const response = await fetch("/api/equipment/equipment-request", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${data.token}`,
@@ -113,7 +113,7 @@ export default function EquipmentRequestForm() {
     const fetchUsersList = async () => {
       try {
         const token = localStorage.getItem("accessToken")
-        const response = await fetch("solicitud-permisos.sao6.com.co/api/users/list", {
+        const response = await fetch("/api/users/list", {
           headers: {
             "Authorization": `Bearer ${token}`
           }
@@ -540,3 +540,4 @@ export default function EquipmentRequestForm() {
     </div>
   )
 }
+

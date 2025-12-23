@@ -46,7 +46,7 @@ export default function PermitRequestForm() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('solicitud-permisos.sao6.com.co/api/users/list')
+      const response = await fetch('/api/users/list')
       if (!response.ok) {
         throw new Error('Error al obtener la lista de usuarios')
       }
@@ -61,7 +61,7 @@ export default function PermitRequestForm() {
     setIsCodePopoverOpen(false)
     setIsLoading(true)
     try {
-      const response = await fetch(`solicitud-permisos.sao6.com.co/api/user/${selectedCode}`)
+      const response = await fetch(`/api/user/${selectedCode}`)
       if (!response.ok) {
         throw new Error('Error al obtener datos del usuario')
       }
@@ -120,7 +120,7 @@ export default function PermitRequestForm() {
     }
 
     try {
-      const response = await fetch('solicitud-permisos.sao6.com.co/api/new-permit-request', {
+      const response = await fetch('/api/new-permit-request', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -137,7 +137,7 @@ export default function PermitRequestForm() {
       const result = await response.json()
       console.log("New permit request result:", result)
 
-      const approvalResponse = await fetch(`solicitud-permisos.sao6.com.co/api/update-approval/${result.id}`, {
+      const approvalResponse = await fetch(`/api/update-approval/${result.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -439,4 +439,5 @@ export default function PermitRequestForm() {
     </div>
   )
 }
+
 

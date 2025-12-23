@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'solicitud-permisos.sao6.com.co/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export async function fetchRequests() {
   const response = await fetch(`${API_URL}/requests`);
@@ -58,3 +58,4 @@ export async function deleteRequest(id: string): Promise<void> {
     throw new Error('Error al eliminar la solicitud');
   }
 }
+

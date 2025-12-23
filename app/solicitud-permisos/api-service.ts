@@ -14,7 +14,7 @@ export async function getUserPermits(): Promise<UserPermit[]> {
             throw new Error("No se encontró el token de acceso")
         }
 
-        const response = await fetch("solicitud-permisos.sao6.com.co/api/admin/solicitudes", {
+        const response = await fetch("/api/admin/solicitudes", {
             headers: {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
@@ -44,7 +44,7 @@ export async function checkExistingPermits(dates: string[], noveltyType: string)
             throw new Error("No se encontró el token de acceso")
         }
 
-        const response = await fetch("solicitud-permisos.sao6.com.co/api/permits/check-existing-permits", {
+        const response = await fetch("/api/permits/check-existing-permits", {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -74,7 +74,7 @@ export async function submitPermitRequest(formData: FormData, signal: AbortSigna
         throw new Error("No se encontró el token de acceso")
     }
 
-    const response = await fetch("solicitud-permisos.sao6.com.co/api/permits/permit-request", {
+    const response = await fetch("/api/permits/permit-request", {
         method: "POST",
         headers: {
             Authorization: `Bearer ${token}`,
@@ -101,7 +101,7 @@ export async function searchEmployees(query: string, signal?: AbortSignal) {
             throw new Error("No se encontró el token de acceso")
         }
 
-        const response = await fetch(`solicitud-permisos.sao6.com.co/api/employees/search?q=${encodeURIComponent(query)}`, {
+        const response = await fetch(`/api/employees/search?q=${encodeURIComponent(query)}`, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
@@ -133,7 +133,7 @@ export async function updateUserPhone(phone: string) {
             throw new Error("No se encontró el token de acceso")
         }
 
-        const response = await fetch("solicitud-permisos.sao6.com.co/api/user/phone", {
+        const response = await fetch("/api/user/phone", {
             method: "PUT",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -152,3 +152,4 @@ export async function updateUserPhone(phone: string) {
         throw error
     }
 }
+

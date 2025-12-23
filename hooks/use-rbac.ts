@@ -91,8 +91,8 @@ export const useRBAC = () => {
         return;
       }
 
-      console.log('RBAC DEBUG: Making request to /user-context/me with token');
-      const response = await fetch('solicitud-permisos.sao6.com.co/api/user-context/me', {
+      console.log('RBAC DEBUG: Making request to /api/user-context/me with token');
+      const response = await fetch('/api/user-context/me', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -314,3 +314,4 @@ export const useRBAC = () => {
     logout
   ]);
 };
+

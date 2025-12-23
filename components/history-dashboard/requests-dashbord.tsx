@@ -169,7 +169,7 @@ export default function RequestDashboard() {
       }
 
       console.log('DEBUG fetchCurrentUser: Haciendo petición a /auth/user')
-      const response = await fetch('solicitud-permisos.sao6.com.co/api/auth/user', {
+      const response = await fetch('/api/auth/user', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -223,7 +223,7 @@ export default function RequestDashboard() {
       // Crear AbortController para cancelar requests
       const abortController = new AbortController()
 
-      const response = await fetch(`solicitud-permisos.sao6.com.co/api/admin/filter-options`, {
+      const response = await fetch(`/api/admin/filter-options`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -353,7 +353,7 @@ export default function RequestDashboard() {
           console.log('DEBUG: Usuario no es se_maintenance, userType:', currentUser?.userType)
         }
 
-        const url = `solicitud-permisos.sao6.com.co/api/admin/requests?${params.toString()}`
+        const url = `/api/admin/requests?${params.toString()}`
         console.log("URL con filtros:", url)
 
         const response = await fetch(url, {
@@ -2180,3 +2180,4 @@ export default function RequestDashboard() {
     </motion.div>
   )
 }
+

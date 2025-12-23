@@ -67,6 +67,11 @@ interface PaginationInfo {
   totalPages: number;
 }
 
+interface AdminUsersModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
 const areas = ['Todas', 'Tecnología', 'Diseño', 'Gestión', 'Marketing', 'Finanzas', 'RRHH', 'Ventas', 'Calidad'];
 
 // Componente PersonModal separado para evitar re-renderizados
@@ -879,7 +884,7 @@ const AdminUsersModal = ({ isOpen, onClose }: AdminUsersModalProps) => {
         throw new Error("No se encontró el token de acceso");
       }
 
-      const response = await fetch(`solicitud-permisos.sao6.com.co/api/admin/search-employee-operations`, {
+      const response = await fetch(`/api/admin/search-employee-operations`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -953,7 +958,7 @@ const AdminUsersModal = ({ isOpen, onClose }: AdminUsersModalProps) => {
         throw new Error("No se encontró el token de acceso");
       }
 
-      const response = await fetch(`solicitud-permisos.sao6.com.co/api/admin/create-user`, {
+      const response = await fetch(`/api/admin/create-user`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

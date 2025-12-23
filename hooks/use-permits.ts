@@ -99,7 +99,7 @@ export const usePermits = (activeTab: string, userTypeFilter?: string | null) =>
         return
       }
 
-      const url = new URL("solicitud-permisos.sao6.com.co/api/admin/requests")
+      const url = new URL("/api/admin/requests", window.location.origin)
       url.searchParams.append("limit", "-1")
 
       const response = await fetch(url.toString(), {
@@ -118,7 +118,7 @@ export const usePermits = (activeTab: string, userTypeFilter?: string | null) =>
         if (response.status === 401) {
           // Intentar renovar el token automáticamente
           try {
-            const refreshResponse = await fetch("solicitud-permisos.sao6.com.co/api/auth/refresh", {
+            const refreshResponse = await fetch("/api/auth/refresh", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -412,3 +412,4 @@ export const usePermits = (activeTab: string, userTypeFilter?: string | null) =>
     applyFilters,
   }
 }
+

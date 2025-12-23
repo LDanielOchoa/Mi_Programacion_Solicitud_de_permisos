@@ -368,11 +368,11 @@ export default function HistoricalRecords() {
     try {
       // Determinar qué endpoint usar
       // Por defecto usamos el endpoint general
-      let url = "solicitud-permisos.sao6.com.co/api/excel"
+      let url = "/api/excel"
 
       // Si estamos filtrando por estado "aprobado", podemos usar el endpoint específico
       if (filterStatus === "aprobado") {
-        url = "solicitud-permisos.sao6.com.co/api/excel-novedades"
+        url = "/api/excel-novedades"
       }
 
       const params = new URLSearchParams()
@@ -388,7 +388,7 @@ export default function HistoricalRecords() {
 
       // Solo añadimos el parámetro de estado si no estamos usando el endpoint de novedades
       // ya que ese endpoint ya filtra por aprobados
-      if (filterStatus !== "all" && url !== "solicitud-permisos.sao6.com.co/api/excel-novedades") {
+      if (filterStatus !== "all" && url !== "/api/excel-novedades") {
         const apiStatus =
           filterStatus === "aprobado" ? "approved" : filterStatus === "rechazado" ? "rejected" : "pending"
         params.append("status", apiStatus)
@@ -435,7 +435,7 @@ export default function HistoricalRecords() {
           // Para el endpoint excel-novedades, sabemos que todos son aprobados
           let estado: "aprobado" | "rechazado" | "pendiente" = "pendiente" // Por defecto es pendiente
 
-          if (url === "solicitud-permisos.sao6.com.co/api/excel-novedades") {
+          if (url === "/api/excel-novedades") {
             estado = "aprobado" // Todos los registros de este endpoint son aprobados
           } else {
             // Para el endpoint general, intentamos inferir el estado
@@ -2568,3 +2568,4 @@ function FilterIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   )
 }
+
