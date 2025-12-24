@@ -9,9 +9,9 @@ import {
   RequestUpdateInput
 } from '../schemas/index.js';
 import { getCurrentUser } from '../middleware/auth.js';
-import { 
-  enrichUserWithPermissions, 
-  requirePermission, 
+import {
+  enrichUserWithPermissions,
+  requirePermission,
   requireAdmin,
   requireAnyPermission,
   UserContext
@@ -26,8 +26,8 @@ import { validateWithZod } from '../utils/validation.js';
 type AppEnv = {
   Variables: {
     currentUser: User;
-    payload: { 
-      sub: string; 
+    payload: {
+      sub: string;
       iat: number;
       exp: number;
     };
@@ -44,7 +44,7 @@ admin.get('/maintenance-diagnostic', requirePermission('maintenance:diagnostic')
   try {
     const { getSqlServerConnection } = await import('../config/sqlserver.js');
     const pool = await getSqlServerConnection();
-    
+
     // Consultas de diagnóstico
     const diagnosticResult = await pool.request()
       .query(`
@@ -89,7 +89,7 @@ admin.get('/maintenance-diagnostic', requirePermission('maintenance:diagnostic')
         WHERE (f_desc_Ccosto LIKE '%Tecnicos de Mantenimiento%' OR f_desc_Ccosto LIKE '%Gestion de Mantenimiento%')
         AND (f_fecha_retiro IS NULL OR f_fecha_retiro > GETDATE())
       `);
-      
+
     const costCenterResult = await pool.request()
       .query(`
         SELECT DISTINCT f_desc_Ccosto, COUNT(*) as cantidad
@@ -98,7 +98,7 @@ admin.get('/maintenance-diagnostic', requirePermission('maintenance:diagnostic')
         GROUP BY f_desc_Ccosto
         ORDER BY cantidad DESC
       `);
-    
+
     return c.json({
       success: true,
       diagnostic: diagnosticResult.recordset,
@@ -119,10 +119,10 @@ admin.get('/maintenance-employees', requirePermission('maintenance:read'), async
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
     logger.error({ error: errorMessage }, 'Error al obtener empleados de mantenimiento');
-    return c.json({ 
-      success: false, 
+    return c.json({
+      success: false,
       message: 'Error al obtener empleados de mantenimiento',
-      error: errorMessage 
+      error: errorMessage
     }, 500);
   }
 });
@@ -132,40 +132,40 @@ admin.post('/search-employee-by-cedula', requirePermission('maintenance:search')
   try {
     const body = await c.req.json();
     const { cedula } = body;
-    
+
     if (!cedula || !cedula.trim()) {
       throw new HTTPException(400, { message: 'Cédula es requerida' });
     }
-    
+
     logger.info({ cedula }, 'Buscando empleado por cédula en SQL Server');
-    
+
     // Buscar empleado usando la función existente
     const employee = await getEmployeeFromSE(cedula.trim());
-    
+
     if (!employee) {
       throw new HTTPException(404, { message: 'Empleado no encontrado' });
     }
-    
+
     logger.info({ cedula, employeeName: employee.nombre }, 'Empleado encontrado exitosamente');
-    
-    return c.json({ 
-      success: true, 
+
+    return c.json({
+      success: true,
       data: employee,
       message: 'Empleado encontrado exitosamente'
     });
-    
+
   } catch (error) {
     if (error instanceof HTTPException) {
       throw error;
     }
-    
+
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
     logger.error({ error: errorMessage }, 'Error al buscar empleado por cédula');
-    
-    return c.json({ 
-      success: false, 
+
+    return c.json({
+      success: false,
       message: 'Error al buscar empleado en la base de datos',
-      error: errorMessage 
+      error: errorMessage
     }, 500);
   }
 });
@@ -175,40 +175,40 @@ admin.post('/search-employee-operations', requirePermission('operations:search')
   try {
     const body = await c.req.json();
     const { cedula } = body;
-    
+
     if (!cedula || !cedula.trim()) {
       throw new HTTPException(400, { message: 'Cédula es requerida' });
     }
-    
+
     logger.info({ cedula }, 'Buscando empleado de operaciones por cédula en SQL Server');
-    
+
     // Buscar empleado en centro de costo "Gestion de Operaciones"
     const employee = await getEmployeeFromOperations(cedula.trim());
-    
+
     if (!employee) {
       throw new HTTPException(404, { message: 'Empleado no encontrado en Gestión de Operaciones' });
     }
-    
+
     logger.info({ cedula, employeeName: employee.f_nombre_empl }, 'Empleado de operaciones encontrado exitosamente');
-    
-    return c.json({ 
-      success: true, 
+
+    return c.json({
+      success: true,
       data: employee,
       message: 'Empleado de operaciones encontrado exitosamente'
     });
-    
+
   } catch (error) {
     if (error instanceof HTTPException) {
       throw error;
     }
-    
+
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
     logger.error({ error: errorMessage }, 'Error al buscar empleado de operaciones por cédula');
-    
-    return c.json({ 
-      success: false, 
+
+    return c.json({
+      success: false,
       message: 'Error al buscar empleado de operaciones en la base de datos',
-      error: errorMessage 
+      error: errorMessage
     }, 500);
   }
 });
@@ -219,10 +219,10 @@ admin.get('/requests', requireAnyPermission(['requests:read', 'requests:read_own
     const page = parseInt(c.req.query('page') || '1', 10);
     let limit = parseInt(c.req.query('limit') || '20', 10);
     const offset = (page - 1) * limit;
-    
+
     // Obtener el usuario actual del contexto con permisos enriquecidos
     const currentUser = c.get('currentUser') as UserContext;
-    
+
     // Obtener filtros de fecha desde los query parameters
     const dateFrom = c.req.query('dateFrom');
     const dateTo = c.req.query('dateTo');
@@ -230,12 +230,12 @@ admin.get('/requests', requireAnyPermission(['requests:read', 'requests:read_own
     const type = c.req.query('type');
     const department = c.req.query('department');
     const priority = c.req.query('priority');
-    
+
     // Aplicar filtrado basado en permisos
     const canReadAllRequests = userHasPermission(currentUser, 'requests:read');
     const canFilterAllTypes = userHasPermission(currentUser, 'requests:filter_all');
     const shouldFilterByUserCode = !canReadAllRequests && userHasPermission(currentUser, 'requests:read_own');
-    
+
     // Determinar userType basado en permisos
     let userType;
     if (canReadAllRequests && canFilterAllTypes) {
@@ -255,7 +255,7 @@ admin.get('/requests', requireAnyPermission(['requests:read', 'requests:read_own
     let dateFilterPerms = '';
     if (dateFrom || dateTo) {
       let dateConditions: string[] = [];
-      
+
       // Si ambas fechas son iguales, buscar registros de ese día específico
       if (dateFrom && dateTo && dateFrom === dateTo) {
         dateConditions.push(`(
@@ -292,7 +292,7 @@ admin.get('/requests', requireAnyPermission(['requests:read', 'requests:read_own
           paramsPerms.push(dateTo, dateTo, dateTo, dateTo);
         }
       }
-      
+
       if (dateConditions.length > 0) {
         dateFilterPerms = 'WHERE ' + dateConditions.join(' AND ');
       }
@@ -300,7 +300,7 @@ admin.get('/requests', requireAnyPermission(['requests:read', 'requests:read_own
     if (status && status !== 'Todos') {
       const statusMap: { [key: string]: string } = {
         'Pendiente': 'pending',
-        'Aprobado': 'approved', 
+        'Aprobado': 'approved',
         'Rechazado': 'rejected'
       };
       const dbStatus = statusMap[status] || status;
@@ -328,7 +328,7 @@ admin.get('/requests', requireAnyPermission(['requests:read', 'requests:read_own
     let dateFilterPost = '';
     if (dateFrom || dateTo) {
       let dateConditions: string[] = [];
-      
+
       // Si ambas fechas son iguales, buscar registros de ese día específico
       if (dateFrom && dateTo && dateFrom === dateTo) {
         dateConditions.push(`DATE(p.time_created) = ?`);
@@ -344,7 +344,7 @@ admin.get('/requests', requireAnyPermission(['requests:read', 'requests:read_own
           paramsPost.push(dateTo);
         }
       }
-      
+
       if (dateConditions.length > 0) {
         dateFilterPost = 'WHERE ' + dateConditions.join(' AND ');
       }
@@ -352,7 +352,7 @@ admin.get('/requests', requireAnyPermission(['requests:read', 'requests:read_own
     if (status && status !== 'Todos') {
       const statusMap: { [key: string]: string } = {
         'Pendiente': 'pending',
-        'Aprobado': 'approved', 
+        'Aprobado': 'approved',
         'Rechazado': 'rejected'
       };
       const dbStatus = statusMap[status] || status;
@@ -379,21 +379,32 @@ admin.get('/requests', requireAnyPermission(['requests:read', 'requests:read_own
     let unionQuery;
     if (shouldFilterByUserCode || userType === 'se_maintenance') {
       unionQuery = `
-        SELECT p.id, p.code, p.name, p.telefono as phone, p.fecha as dates, p.hora as time,
-               p.tipo_novedad as type, p.tipo_novedad as noveltyType, p.description,
-               p.files, p.time_created as createdAt, p.solicitud as status,
-               p.respuesta as reason, p.notifications, 'permiso' as request_type,
-               NULL as zona, NULL as codeAM, NULL as codePM, NULL as shift,
-               u.password, 
-               COALESCE(p.userType, 'registered') as userType,
-               CASE 
-                 WHEN COALESCE(p.userType, 'registered') = 'se_maintenance' THEN 'Personal de Mantenimiento'
-                 ELSE 'Usuario Registrado'
-               END as tipo_usuario_desc
-        FROM permit_perms p
-        LEFT JOIN users u ON p.code = u.code
-        ${dateFilterPerms}
-        ${wherePerms.length > 0 ? (dateFilterPerms ? ' AND ' : ' WHERE ') + wherePerms.join(' AND ') : ''}
+        (SELECT p.id, p.code, p.name, p.telefono as phone, p.fecha as dates, p.hora as time,
+                p.tipo_novedad as type, p.tipo_novedad as noveltyType, p.description,
+                p.files, p.time_created as createdAt, p.solicitud as status,
+                p.respuesta as reason, p.notifications, 'permiso' as request_type,
+                NULL as zona, NULL as codeAM, NULL as codePM, NULL as shift,
+                u.password, 
+                COALESCE(p.userType, 'registered') as userType,
+                CASE 
+                  WHEN COALESCE(p.userType, 'registered') = 'se_maintenance' THEN 'Personal de Mantenimiento'
+                  ELSE 'Usuario Registrado'
+                END as tipo_usuario_desc
+         FROM permit_perms p
+         LEFT JOIN users u ON p.code = u.code
+         ${dateFilterPerms}
+         ${wherePerms.length > 0 ? (dateFilterPerms ? ' AND ' : ' WHERE ') + wherePerms.join(' AND ') : ''})
+        UNION ALL
+        (SELECT p.id, p.code, p.name, NULL as phone, NULL as dates, NULL as time,
+                p.tipo_novedad as type, p.tipo_novedad as noveltyType, p.description,
+                NULL as files, p.time_created as createdAt, p.solicitud as status, 
+                p.respuesta as reason, p.notifications, 'postulaciones' as request_type,
+                p.zona, p.comp_am as codeAM, p.comp_pm as codePM, p.turno as shift,
+                u.password, 'registered' as userType, 'Usuario Registrado' as tipo_usuario_desc
+         FROM permit_post p
+         LEFT JOIN users u ON p.code = u.code
+         ${dateFilterPost}
+         ${wherePost.length > 0 ? (dateFilterPost ? ' AND ' : ' WHERE ') + wherePost.join(' AND ') : ''})
         ORDER BY createdAt DESC
         LIMIT ? OFFSET ?
       `;
@@ -418,9 +429,9 @@ admin.get('/requests', requireAnyPermission(['requests:read', 'requests:read_own
         (SELECT p.id, p.code, p.name, NULL as phone, NULL as dates, NULL as time,
                 p.tipo_novedad as type, p.tipo_novedad as noveltyType, p.description,
                 NULL as files, p.time_created as createdAt, p.solicitud as status, 
-                p.respuesta as reason, p.notifications, 'equipo' as request_type,
+                p.respuesta as reason, p.notifications, 'postulaciones' as request_type,
                 p.zona, p.comp_am as codeAM, p.comp_pm as codePM, p.turno as shift,
-                u.password, 'registered' as user_type, 'Usuario Registrado' as tipo_usuario_desc
+                u.password, 'registered' as userType, 'Usuario Registrado' as tipo_usuario_desc
          FROM permit_post p
          LEFT JOIN users u ON p.code = u.code
          ${dateFilterPost}
@@ -582,9 +593,9 @@ admin.get('/requests', requireAnyPermission(['requests:read', 'requests:read_own
       }
     }
 
-    logger.info({ 
-      requestsCount: allRequests?.length || 0, 
-      total: totalResult?.total || 0 
+    logger.info({
+      requestsCount: allRequests?.length || 0,
+      total: totalResult?.total || 0
     }, 'Solicitudes obtenidas exitosamente');
 
     return c.json({
@@ -597,15 +608,15 @@ admin.get('/requests', requireAnyPermission(['requests:read', 'requests:read_own
     });
 
   } catch (error) {
-    logger.error({ 
+    logger.error({
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
       page: c.req.query('page'),
       limit: c.req.query('limit')
     }, 'Error al obtener solicitudes');
-    
-    throw new HTTPException(500, { 
-      message: 'Error interno del servidor al obtener las solicitudes' 
+
+    throw new HTTPException(500, {
+      message: 'Error interno del servidor al obtener las solicitudes'
     });
   }
 });
@@ -647,13 +658,13 @@ admin.get('/filter-options', requirePermission('requests:read'), async (c) => {
     });
 
   } catch (error) {
-    logger.error({ 
+    logger.error({
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
     }, 'Error al obtener opciones de filtros');
-    
-    throw new HTTPException(500, { 
-      message: 'Error interno del servidor al obtener opciones de filtros' 
+
+    throw new HTTPException(500, {
+      message: 'Error interno del servidor al obtener opciones de filtros'
     });
   }
 });
@@ -691,6 +702,7 @@ admin.get('/requests/:code', requireAnyPermission(['requests:read', 'requests:re
         p.code,
         p.name,
         p.tipo_novedad as type,
+        p.tipo_novedad as noveltyType,
         p.description,
         p.time_created as createdAt,
         p.solicitud as status,
@@ -700,6 +712,7 @@ admin.get('/requests/:code', requireAnyPermission(['requests:read', 'requests:re
         p.comp_am as codeAM,
         p.comp_pm as codePM,
         p.turno as shift,
+        'postulaciones' as request_type,
         u.password
       FROM permit_post p
       LEFT JOIN users u ON p.code = u.code
@@ -809,7 +822,7 @@ admin.delete('/requests/:id', requirePermission('requests:delete'), async (c) =>
 // GET /solicitudes - Obtener solicitudes del usuario actual
 admin.get('/solicitudes', requireAnyPermission(['requests:read', 'requests:read_own']), async (c) => {
   const currentUser = c.get('currentUser') as User;
-  
+
   const permitRequests = await executeQuery<any[]>(
     `SELECT
         id,
@@ -857,12 +870,12 @@ admin.get('/solicitudes', requireAnyPermission(['requests:read', 'requests:read_
         '' as files,
         '' as file_name,
         '' as file_url,
-        'solicitud' as request_type
+        'postulaciones' as request_type
       FROM permit_post
-      WHERE code = ? AND solicitud IN ('approved', 'rejected')`,
+      WHERE code = ? AND solicitud IN ('approved', 'rejected', 'pending')`,
     [currentUser.code], { fetchAll: true }
   );
-  
+
   const allRequests = [...(permitRequests || []), ...(equipmentRequests || [])];
 
   for (const request of allRequests) {
@@ -885,7 +898,7 @@ admin.get('/solicitudes', requireAnyPermission(['requests:read', 'requests:read_
 admin.get('/history/:code', async (c) => {
   const code = c.req.param('code');
   if (!code) throw new HTTPException(400, { message: 'Código de usuario requerido' });
-  
+
   const userExists = await executeQuery<{ count: number }>(
     'SELECT COUNT(*) as count FROM users WHERE code = ?', [code], { fetchOne: true }
   );
@@ -906,7 +919,7 @@ admin.get('/history/:code', async (c) => {
       LIMIT 50`,
     [code], { fetchAll: true }
   );
-  
+
   for (const item of history || []) {
     if (item.createdAt) {
       if (typeof item.createdAt === 'string') {
@@ -927,7 +940,7 @@ admin.get('/history/:code', async (c) => {
 admin.get('/requests/:id/history', getCurrentUser, requireAdmin, async (c) => {
   try {
     const id = parseInt(c.req.param('id') || '0', 10);
-    
+
     if (!id) {
       throw new HTTPException(400, { message: 'ID de solicitud requerido' });
     }
@@ -1008,9 +1021,9 @@ admin.get('/requests/:id/history', getCurrentUser, requireAdmin, async (c) => {
       });
     }
 
-    logger.info({ 
-      requestId: id, 
-      historyCount: history.length 
+    logger.info({
+      requestId: id,
+      historyCount: history.length
     }, 'Historial de solicitud obtenido exitosamente');
 
     return c.json({
@@ -1028,15 +1041,15 @@ admin.get('/requests/:id/history', getCurrentUser, requireAdmin, async (c) => {
     if (error instanceof HTTPException) {
       throw error;
     }
-    
-    logger.error({ 
+
+    logger.error({
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
       requestId: c.req.param('id')
     }, 'Error al obtener historial de solicitud');
-    
-    throw new HTTPException(500, { 
-      message: 'Error interno del servidor al obtener el historial' 
+
+    throw new HTTPException(500, {
+      message: 'Error interno del servidor al obtener el historial'
     });
   }
 });
@@ -1045,7 +1058,7 @@ admin.get('/requests/:id/history', getCurrentUser, requireAdmin, async (c) => {
 admin.get('/requests/user/:code/history', getCurrentUser, requireAdmin, async (c) => {
   try {
     const userCode = c.req.param('code');
-    
+
     if (!userCode) {
       throw new HTTPException(400, { message: 'Código de usuario requerido' });
     }
@@ -1084,7 +1097,7 @@ admin.get('/requests/user/:code/history', getCurrentUser, requireAdmin, async (c
         zona as requestedDates,
         respuesta as reason,
         description,
-        'equipo' as request_type
+        'postulaciones' as request_type
       FROM permit_post 
       WHERE code = ?
       ORDER BY time_created DESC`,
@@ -1128,10 +1141,10 @@ admin.get('/requests/user/:code/history', getCurrentUser, requireAdmin, async (c
       return baseHistory;
     }).flat();
 
-    logger.info({ 
-      userCode, 
+    logger.info({
+      userCode,
       totalRequests: allRequests.length,
-      historyCount: history.length 
+      historyCount: history.length
     }, 'Historial completo de usuario obtenido exitosamente');
 
     return c.json({
@@ -1150,15 +1163,15 @@ admin.get('/requests/user/:code/history', getCurrentUser, requireAdmin, async (c
     if (error instanceof HTTPException) {
       throw error;
     }
-    
-    logger.error({ 
+
+    logger.error({
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
       userCode: c.req.param('code')
     }, 'Error al obtener historial completo de usuario');
-    
-    throw new HTTPException(500, { 
-      message: 'Error interno del servidor al obtener el historial completo' 
+
+    throw new HTTPException(500, {
+      message: 'Error interno del servidor al obtener el historial completo'
     });
   }
 });
@@ -1172,43 +1185,43 @@ admin.get('/test-db', async (c) => {
       FROM INFORMATION_SCHEMA.TABLES 
       WHERE TABLE_SCHEMA = ? AND TABLE_NAME IN ('permit_perms', 'permit_post', 'users')
     `;
-    
+
     const tables = await executeQuery<any[]>(
-      tablesQuery, 
-      [process.env.DB_NAME || 'bdsaocomco_solicitudpermisos'], 
+      tablesQuery,
+      [process.env.DB_NAME || 'bdsaocomco_solicitudpermisos'],
       { fetchAll: true }
     );
-    
+
     logger.info({ tables: tables?.map((t: any) => t.TABLE_NAME) }, 'Tablas encontradas');
-    
+
     // Verificar estructura de las tablas
     const permitPermsStructure = await executeQuery<any[]>(
       'DESCRIBE permit_perms',
       [],
       { fetchAll: true }
     );
-    
+
     const permitPostStructure = await executeQuery<any[]>(
       'DESCRIBE permit_post',
       [],
       { fetchAll: true }
     );
-    
+
     return c.json({
       message: 'Conexión a la base de datos exitosa',
       tables: tables?.map((t: any) => t.TABLE_NAME) || [],
       permitPermsColumns: permitPermsStructure?.map((c: any) => c.Field) || [],
       permitPostColumns: permitPostStructure?.map((c: any) => c.Field) || []
     });
-    
+
   } catch (error) {
-    logger.error({ 
+    logger.error({
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
     }, 'Error en prueba de base de datos');
-    
-    throw new HTTPException(500, { 
-      message: 'Error al conectar con la base de datos' 
+
+    throw new HTTPException(500, {
+      message: 'Error al conectar con la base de datos'
     });
   }
 });
@@ -1217,27 +1230,27 @@ admin.get('/test-db', async (c) => {
 admin.post('/create-user', getCurrentUser, requireAdmin, async (c) => {
   try {
     const { name, code, cedula, telefone, cargo } = await c.req.json();
-    
+
     // Validaciones
     if (!name || !code || !cedula) {
-      return c.json({ 
-        success: false, 
-        error: 'Faltan campos requeridos: name, code, cedula' 
+      return c.json({
+        success: false,
+        error: 'Faltan campos requeridos: name, code, cedula'
       }, 400);
     }
 
     // Validar que el código sea de 4 dígitos
     if (!/^\d{4}$/.test(code)) {
-      return c.json({ 
-        success: false, 
-        error: 'El código debe ser de exactamente 4 dígitos' 
+      return c.json({
+        success: false,
+        error: 'El código debe ser de exactamente 4 dígitos'
       }, 400);
     }
 
     logger.info({ name, code, cedula, cargo }, 'Creando nuevo usuario');
 
     const connection = await getConnection();
-    
+
     try {
       // Verificar si ya existe un usuario con la misma cédula (password) o código
       const [existingUsers] = await connection.execute(
@@ -1247,9 +1260,9 @@ admin.post('/create-user', getCurrentUser, requireAdmin, async (c) => {
 
       if (existingUsers.length > 0) {
         const duplicateField = existingUsers[0].password === cedula ? 'cédula' : 'código';
-        return c.json({ 
-          success: false, 
-          error: `Ya existe un usuario con esta ${duplicateField}` 
+        return c.json({
+          success: false,
+          error: `Ya existe un usuario con esta ${duplicateField}`
         }, 409);
       }
 
@@ -1276,9 +1289,9 @@ admin.post('/create-user', getCurrentUser, requireAdmin, async (c) => {
   } catch (error) {
     logger.error({ error }, 'Error al crear usuario');
     const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-    return c.json({ 
-      success: false, 
-      error: errorMessage 
+    return c.json({
+      success: false,
+      error: errorMessage
     }, 500);
   }
 });

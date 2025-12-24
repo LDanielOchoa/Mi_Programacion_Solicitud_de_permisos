@@ -116,11 +116,10 @@ export function UserSelectDialog({ open, onOpenChange, onSelect, users, currentU
                     className={cn(
                       "w-full flex items-center gap-4 p-3 rounded-xl transition-all text-left group",
                       user.code === currentUser.code
-                        ? "bg-gray-50/50 cursor-not-allowed opacity-50"
+                        ? "bg-green-50 border border-green-200 hover:bg-green-100"
                         : "hover:bg-[#4cc253]/5 active:scale-[0.98]"
                     )}
-                    onClick={() => user.code !== currentUser.code && handleSelect(user)}
-                    disabled={user.code === currentUser.code}
+                    onClick={() => handleSelect(user)}
                   >
                     <Avatar className="h-10 w-10 border border-gray-100 shadow-sm flex-shrink-0">
                       <AvatarFallback className="bg-white text-[#4cc253] font-black text-xs border border-[#4cc253]/10">
@@ -138,7 +137,7 @@ export function UserSelectDialog({ open, onOpenChange, onSelect, users, currentU
                     </div>
 
                     {user.code === currentUser.code ? (
-                      <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest px-2">Tú</span>
+                      <span className="text-[10px] font-black text-green-600 uppercase tracking-widest px-2 bg-green-100 rounded-full py-0.5">Yo</span>
                     ) : (
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                         <Check size={16} className="text-[#4cc253]" />

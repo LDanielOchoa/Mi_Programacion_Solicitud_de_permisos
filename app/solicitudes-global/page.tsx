@@ -37,6 +37,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { format, parseISO } from "date-fns"
 import { es } from "date-fns/locale"
 import dynamic from "next/dynamic"
+import { useRBAC } from "@/hooks/use-rbac"
 
 // Lazy loaded components
 const BottomNavigation = dynamic(() => import("@/components/BottomNavigation"), {
@@ -86,6 +87,7 @@ export default function Solicitudes() {
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false)
   const [isEmptyState, setIsEmptyState] = useState(false)
+  const { hasCapability, isAdmin } = useRBAC()
 
   // Referencias para animaciones de scroll
   const summaryRef = useRef(null)
@@ -121,7 +123,11 @@ export default function Solicitudes() {
       }
 
       // Obtener solicitudes
-      const response = await fetch("/api/admin/solicitudes", {
+      // Si el usuario es admin o puede ver todas las solicitudes, usamos el endpoint global
+      const useAdminEndpoint = isAdmin || hasCapability('canViewAllRequests');
+      const apiEndpoint = useAdminEndpoint ? "/api/admin/requests?limit=1000" : "/api/admin/solicitudes";
+
+      const response = await fetch(apiEndpoint, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
@@ -129,10 +135,15 @@ export default function Solicitudes() {
       })
 
       if (response.ok) {
-        const data = await response.json()
-        const typedData = data.map((req: any) => ({
+        const result = await response.json()
+        // Manejar tanto formato de array como formato de objeto (admin)
+        const rawData = Array.isArray(result) ? result : (result.data || [])
+
+        const typedData = rawData.map((req: any) => ({
           ...req,
           status: req.status as "approved" | "rejected" | "pending",
+          // Asegurar que tipo_novedad esté presente para compatibilidad
+          tipo_novedad: req.tipo_novedad || req.type || "Novedad",
         }))
         setRequests(typedData)
         setFilteredRequests(typedData)
